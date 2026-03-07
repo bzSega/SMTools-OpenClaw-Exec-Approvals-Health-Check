@@ -6,6 +6,7 @@
 - Per-agent overrides cleanup: removes `security`, `ask`, `askFallback` from individual agents so they inherit from `defaults` (recommended by OpenClaw docs)
 - `safe_mv` function: validates temp file is non-empty and valid JSON before overwriting config, preventing data loss on `jq` failure
 - `tg-reader*` skill binary added to allowlist via `~/.local/bin/tg-reader*` pattern
+- Venv python3 added to allowlist via `~/.venv/*/bin/python3` glob pattern (covers python3 from any virtual environment)
 - `jq` availability check before running
 - JSON validation before modifying config
 - Test 12: verifies per-agent overrides are removed

@@ -60,7 +60,7 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 ### Какие утилиты добавляются в allowlist
 
-Скрипт проверяет наличие 36 записей в `agents["*"].allowlist`:
+Скрипт проверяет наличие 37 записей в `agents["*"].allowlist`:
 
 **Shell и интерпретаторы:**
 `/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
@@ -81,6 +81,9 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 **Скиллы:**
 `~/.local/bin/tg-reader*` (чтение Telegram-каналов)
+
+**Виртуальные окружения:**
+`~/.venv/*/bin/python3` (python3 из любого venv)
 
 > Существующие записи с `id`, `lastUsedAt` и другими метаданными сохраняются. Allowlist'ы других агентов (например `main`) не изменяются.
 

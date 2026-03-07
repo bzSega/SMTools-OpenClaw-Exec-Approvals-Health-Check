@@ -135,6 +135,7 @@ BINARIES=(
   "/usr/bin/realpath"
   "/usr/bin/readlink"
   "$HOME/.local/bin/tg-reader*"
+  "$HOME/.venv/*/bin/python3"
 )
 
 ADDED=0

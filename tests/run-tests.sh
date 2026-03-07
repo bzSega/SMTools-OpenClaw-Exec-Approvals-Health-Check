@@ -285,8 +285,8 @@ EOF
 bash "$HEALTH_CHECK" >/dev/null 2>&1
 
 COUNT=$(jq '.agents["*"].allowlist | length' "$OPENCLAW_CONFIG")
-# Script has 35 binaries in the list
-if [ "$COUNT" -ge 35 ]; then
+# Script has 37 entries in the list (35 system + tg-reader + venv python3)
+if [ "$COUNT" -ge 37 ]; then
   pass
 else
   fail "Expected >= 35 entries, got $COUNT"

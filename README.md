@@ -60,7 +60,7 @@ The script removes `security`, `ask`, and `askFallback` from individual agents s
 
 ### Binaries added to allowlist
 
-The script ensures 36 entries are present in `agents["*"].allowlist`:
+The script ensures 37 entries are present in `agents["*"].allowlist`:
 
 **Shell & interpreters:**
 `/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
@@ -81,6 +81,9 @@ The script ensures 36 entries are present in `agents["*"].allowlist`:
 
 **Skills:**
 `~/.local/bin/tg-reader*` (Telegram channel reader)
+
+**Virtual environments:**
+`~/.venv/*/bin/python3` (python3 from any venv)
 
 > Existing entries with `id`, `lastUsedAt`, and other metadata are preserved. Other agent allowlists (e.g., `main`) are not modified.
 
