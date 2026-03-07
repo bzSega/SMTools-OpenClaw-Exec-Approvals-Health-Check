@@ -476,9 +476,9 @@ fi
 teardown_tmpdir
 
 # =============================================
-# TEST 12: per-agent ask=always is normalized to off
+# TEST 12: per-agent overrides are removed (inherit defaults)
 # =============================================
-run_test "Per-agent ask=always is normalized to off"
+run_test "Per-agent security/ask/askFallback are removed"
 setup_tmpdir
 
 cat > "$OPENCLAW_CONFIG" << 'EOF'
@@ -488,11 +488,15 @@ cat > "$OPENCLAW_CONFIG" << 'EOF'
   "agents": {
     "*": {
       "allowlist": [],
-      "ask": "always"
+      "security": "full",
+      "ask": "always",
+      "askFallback": "full"
     },
     "main": {
       "allowlist": [],
-      "ask": "always"
+      "security": "full",
+      "ask": "always",
+      "askFallback": "full"
     }
   }
 }
@@ -500,13 +504,15 @@ EOF
 
 bash "$HEALTH_CHECK" >/dev/null 2>&1
 
-STAR_ASK=$(jq -r '.agents["*"].ask' "$OPENCLAW_CONFIG")
-MAIN_ASK=$(jq -r '.agents["main"].ask' "$OPENCLAW_CONFIG")
+STAR_SEC=$(jq 'has("agents") and (.agents["*"] | has("security"))' "$OPENCLAW_CONFIG")
+STAR_ASK=$(jq 'has("agents") and (.agents["*"] | has("ask"))' "$OPENCLAW_CONFIG")
+MAIN_SEC=$(jq 'has("agents") and (.agents["main"] | has("security"))' "$OPENCLAW_CONFIG")
+MAIN_ASK=$(jq 'has("agents") and (.agents["main"] | has("ask"))' "$OPENCLAW_CONFIG")
 
-if [ "$STAR_ASK" = "off" ] && [ "$MAIN_ASK" = "off" ]; then
+if [ "$STAR_SEC" = "false" ] && [ "$STAR_ASK" = "false" ] && [ "$MAIN_SEC" = "false" ] && [ "$MAIN_ASK" = "false" ]; then
   pass
 else
-  fail "agents[*].ask=$STAR_ASK agents[main].ask=$MAIN_ASK"
+  fail "overrides remain: *.security=$STAR_SEC *.ask=$STAR_ASK main.security=$MAIN_SEC main.ask=$MAIN_ASK"
 fi
 teardown_tmpdir
 

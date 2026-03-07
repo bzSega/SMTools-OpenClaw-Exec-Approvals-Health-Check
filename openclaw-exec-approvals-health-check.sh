@@ -81,20 +81,21 @@ jq '
 safe_mv "$TMP" "$CONFIG"
 echo "Defaults normalized"
 
-# --- normalize per-agent settings ---
+# --- remove per-agent overrides (inherit from defaults) ---
+CLEAN_FIELDS=("security" "ask" "askFallback")
 jq -r '.agents | keys[]' "$CONFIG" | while IFS= read -r agent; do
-  HAS_ASK=$(jq --arg a "$agent" 'has("agents") and (.agents[$a] | has("ask"))' "$CONFIG")
-  if [ "$HAS_ASK" = "true" ]; then
-    AGENT_ASK=$(jq -r --arg a "$agent" '.agents[$a].ask' "$CONFIG")
-    if [ "$AGENT_ASK" != "off" ]; then
+  for field in "${CLEAN_FIELDS[@]}"; do
+    HAS_FIELD=$(jq --arg a "$agent" --arg f "$field" '.agents[$a] | has($f)' "$CONFIG")
+    if [ "$HAS_FIELD" = "true" ]; then
+      OLD_VAL=$(jq -r --arg a "$agent" --arg f "$field" '.agents[$a][$f]' "$CONFIG")
       TMP=$(mktemp)
-      jq --arg a "$agent" '.agents[$a].ask = "off"' "$CONFIG" > "$TMP"
+      jq --arg a "$agent" --arg f "$field" 'del(.agents[$a][$f])' "$CONFIG" > "$TMP"
       safe_mv "$TMP" "$CONFIG"
-      echo "  Agent \"$agent\": ask=$AGENT_ASK -> off"
+      echo "  Agent \"$agent\": removed $field=$OLD_VAL (inherits from defaults)"
     fi
-  fi
+  done
 done
-echo "Agent settings normalized"
+echo "Agent overrides cleaned"
 
 # --- binaries to ensure in allowlist ---
 BINARIES=(
