@@ -25,6 +25,22 @@ cleanup_on_error() {
 }
 trap cleanup_on_error ERR
 
+# --- safe move: only overwrite config if tmp is valid ---
+safe_mv() {
+  local src="$1" dst="$2"
+  if [ ! -s "$src" ]; then
+    echo "ERROR: jq produced empty output, config not overwritten"
+    rm -f "$src"
+    return 1
+  fi
+  if ! jq empty "$src" 2>/dev/null; then
+    echo "ERROR: jq produced invalid JSON, config not overwritten"
+    rm -f "$src"
+    return 1
+  fi
+  mv "$src" "$dst"
+}
+
 # --- check config exists ---
 if [ ! -f "$CONFIG" ]; then
   echo "Config not found: $CONFIG"
@@ -62,7 +78,7 @@ jq '
 .defaults.autoAllowSkills = true
 ' "$CONFIG" > "$TMP"
 
-mv "$TMP" "$CONFIG"
+safe_mv "$TMP" "$CONFIG"
 echo "Defaults normalized"
 
 # --- binaries to ensure in allowlist ---
@@ -118,7 +134,7 @@ for bin in "${BINARIES[@]}"; do
     jq --arg p "$bin" '
       .agents["*"].allowlist += [{"pattern": $p}]
     ' "$CONFIG" > "$TMP"
-    mv "$TMP" "$CONFIG"
+    safe_mv "$TMP" "$CONFIG"
     echo "  + $bin"
     ADDED=$((ADDED + 1))
   else
