@@ -141,27 +141,34 @@ BINARIES=(
 ADDED=0
 SKIPPED=0
 
-for bin in "${BINARIES[@]}"; do
+# Allowlists are per-agent (no inheritance from "*").
+# Add binaries to every agent's allowlist.
+jq -r '.agents | keys[]' "$CONFIG" | while IFS= read -r agent; do
+  AGENT_ADDED=0
+  AGENT_SKIPPED=0
 
-  EXISTS=$(jq --arg p "$bin" '
-    .agents["*"].allowlist[]? | select(.pattern == $p)
-  ' "$CONFIG")
+  for bin in "${BINARIES[@]}"; do
+    EXISTS=$(jq --arg a "$agent" --arg p "$bin" '
+      .agents[$a].allowlist[]? | select(.pattern == $p)
+    ' "$CONFIG")
 
-  if [ -z "$EXISTS" ]; then
-    TMP=$(mktemp)
-    jq --arg p "$bin" '
-      .agents["*"].allowlist += [{"pattern": $p}]
-    ' "$CONFIG" > "$TMP"
-    safe_mv "$TMP" "$CONFIG"
-    echo "  + $bin"
-    ADDED=$((ADDED + 1))
-  else
-    SKIPPED=$((SKIPPED + 1))
-  fi
+    if [ -z "$EXISTS" ]; then
+      TMP=$(mktemp)
+      jq --arg a "$agent" --arg p "$bin" '
+        .agents[$a].allowlist += [{"pattern": $p}]
+      ' "$CONFIG" > "$TMP"
+      safe_mv "$TMP" "$CONFIG"
+      echo "  [$agent] + $bin"
+      AGENT_ADDED=$((AGENT_ADDED + 1))
+    else
+      AGENT_SKIPPED=$((AGENT_SKIPPED + 1))
+    fi
+  done
 
+  echo "  Agent \"$agent\": added $AGENT_ADDED, already present $AGENT_SKIPPED"
 done
 
-echo "Allowlist: added $ADDED, already present $SKIPPED"
+echo "Allowlist populated"
 
 # --- restart gateway ---
 echo "Restarting gateway..."

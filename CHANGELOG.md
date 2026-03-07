@@ -7,6 +7,7 @@
 - `safe_mv` function: validates temp file is non-empty and valid JSON before overwriting config, preventing data loss on `jq` failure
 - `tg-reader*` skill binary added to allowlist via `~/.local/bin/tg-reader*` pattern
 - Venv python3 added to allowlist via `~/.venv/*/bin/python3` glob pattern (covers python3 from any virtual environment)
+- Allowlist population now adds binaries to **every agent**, not just `agents["*"]` (OpenClaw allowlists are per-agent with no inheritance)
 - `jq` availability check before running
 - JSON validation before modifying config
 - Test 12: verifies per-agent overrides are removed

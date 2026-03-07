@@ -417,32 +417,31 @@ fi
 teardown_tmpdir
 
 # =============================================
-# TEST 10: main agent allowlist is untouched
+# TEST 10: main agent gets binaries added too
 # =============================================
-run_test "Main agent allowlist is not modified"
+run_test "Main agent allowlist gets missing binaries added"
 setup_tmpdir
 create_fixture_realistic
 
-BEFORE_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
-
 bash "$HEALTH_CHECK" >/dev/null 2>&1
 
-AFTER_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
+# main should have at least 37 entries now (12 original + missing ones)
+MAIN_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
 
-if [ "$BEFORE_COUNT" = "$AFTER_COUNT" ]; then
+if [ "$MAIN_COUNT" -ge 37 ]; then
   pass
 else
-  fail "main allowlist: before=$BEFORE_COUNT after=$AFTER_COUNT"
+  fail "main allowlist: expected >= 37, got $MAIN_COUNT"
 fi
 teardown_tmpdir
 
 # =============================================
-# TEST 11: script adds only to agents["*"]
+# TEST 11: existing entries preserved when adding to all agents
 # =============================================
-run_test "New entries go to agents[*], not agents[main]"
+run_test "Existing entries in main preserved, new ones added"
 setup_tmpdir
 
-# Config with /usr/bin/tr only in main, not in *
+# Config with /usr/bin/tr only in main with metadata
 cat > "$OPENCLAW_CONFIG" << 'EOF'
 {
   "version": 1,
@@ -462,16 +461,16 @@ EOF
 
 bash "$HEALTH_CHECK" >/dev/null 2>&1
 
-# /usr/bin/tr should be added to * allowlist
+# /usr/bin/tr should be in both agents
 TR_IN_STAR=$(jq '[.agents["*"].allowlist[] | select(.pattern == "/usr/bin/tr")] | length' "$OPENCLAW_CONFIG")
-# main should still have exactly 1 entry
-MAIN_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
-MAIN_ID=$(jq -r '.agents["main"].allowlist[0].id' "$OPENCLAW_CONFIG")
+TR_IN_MAIN=$(jq '[.agents["main"].allowlist[] | select(.pattern == "/usr/bin/tr")] | length' "$OPENCLAW_CONFIG")
+# original entry with id should be preserved (no duplicate)
+MAIN_TR_ID=$(jq -r '[.agents["main"].allowlist[] | select(.pattern == "/usr/bin/tr")][0].id' "$OPENCLAW_CONFIG")
 
-if [ "$TR_IN_STAR" -ge 1 ] && [ "$MAIN_COUNT" = "1" ] && [ "$MAIN_ID" = "keep-me" ]; then
+if [ "$TR_IN_STAR" -ge 1 ] && [ "$TR_IN_MAIN" = "1" ] && [ "$MAIN_TR_ID" = "keep-me" ]; then
   pass
 else
-  fail "tr_in_star=$TR_IN_STAR main_count=$MAIN_COUNT main_id=$MAIN_ID"
+  fail "tr_in_star=$TR_IN_STAR tr_in_main=$TR_IN_MAIN main_tr_id=$MAIN_TR_ID"
 fi
 teardown_tmpdir
 

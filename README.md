@@ -26,7 +26,7 @@ This script sets a **recommended baseline**: `allowlist` mode + standard Linux u
 | 2 | Validates config exists and is valid JSON | Won't touch broken files |
 | 3 | Normalizes `defaults` (security, ask, askFallback, autoAllowSkills) | Sets secure values |
 | 4 | Removes per-agent overrides (security, ask, askFallback) | Agents inherit from defaults cleanly |
-| 5 | Adds missing system utilities to `agents["*"].allowlist` | No duplicates, preserves existing entries |
+| 5 | Adds missing system utilities to **every agent's** allowlist | No duplicates, preserves existing entries |
 | 6 | Restarts the gateway | Applies changes |
 | 7 | Offers to restore backup on error | Interactive rollback |
 
@@ -85,7 +85,7 @@ The script ensures 37 entries are present in `agents["*"].allowlist`:
 **Virtual environments:**
 `~/.venv/*/bin/python3` (python3 from any venv)
 
-> Existing entries with `id`, `lastUsedAt`, and other metadata are preserved. Other agent allowlists (e.g., `main`) are not modified.
+> Allowlists are per-agent in OpenClaw (no inheritance). The script adds missing entries to **every** agent's allowlist. Existing entries with `id`, `lastUsedAt`, and other metadata are preserved.
 
 ## Requirements
 
