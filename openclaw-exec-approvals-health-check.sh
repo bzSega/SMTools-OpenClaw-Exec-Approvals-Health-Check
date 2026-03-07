@@ -134,6 +134,11 @@ BINARIES=(
   "/usr/bin/basename"
   "/usr/bin/realpath"
   "/usr/bin/readlink"
+  "/usr/bin/pip"
+  "/usr/bin/pip3"
+  "/usr/bin/ffmpeg"
+  "/usr/bin/ffprobe"
+  "/usr/bin/openclaw"
   "$HOME/.local/bin/tg-reader*"
   "$HOME/.venv/*/bin/python3"
 )

@@ -60,7 +60,7 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 ### Какие утилиты добавляются в allowlist
 
-Скрипт проверяет наличие 37 записей в `agents["*"].allowlist`:
+Скрипт проверяет наличие 42 записей в allowlist каждого агента:
 
 **Shell и интерпретаторы:**
 `/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
@@ -78,6 +78,9 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 **Пути:**
 `dirname`, `basename`, `realpath`, `readlink`
+
+**Пакетные менеджеры и инструменты:**
+`pip`, `pip3`, `ffmpeg`, `ffprobe`, `openclaw`
 
 **Скиллы:**
 `~/.local/bin/tg-reader*` (чтение Telegram-каналов)
