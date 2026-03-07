@@ -14,8 +14,9 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 - Агент может быть заблокирован на безобидных командах (`cat`, `ls`, `grep`)
 - Или наоборот — иметь слишком широкие права (`security: "full"`)
+- Per-agent переопределения (например `ask: "always"`) могут конфликтовать с defaults
 
-Этот скрипт выставляет **рекомендованный baseline**: режим `allowlist` + набор стандартных утилит Linux.
+Этот скрипт выставляет **рекомендованный baseline**: режим `allowlist` + набор стандартных утилит Linux + чистое наследование настроек агентов.
 
 ## Что делает скрипт
 
@@ -24,9 +25,16 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 | 1 | Создает бэкап конфига с таймстампом | Можно откатить в любой момент |
 | 2 | Проверяет что конфиг существует и валидный JSON | Не трогает битые файлы |
 | 3 | Нормализует `defaults` (security, ask, askFallback, autoAllowSkills) | Выставляет безопасные значения |
-| 4 | Добавляет отсутствующие системные утилиты в `agents["*"].allowlist` | Не дублирует, не удаляет существующие |
-| 5 | Перезапускает gateway | Применяет изменения |
-| 6 | При ошибке предлагает восстановить бэкап | Интерактивный откат |
+| 4 | Удаляет per-agent переопределения (security, ask, askFallback) | Агенты наследуют от defaults |
+| 5 | Добавляет отсутствующие системные утилиты в `agents["*"].allowlist` | Не дублирует, не удаляет существующие |
+| 6 | Перезапускает gateway | Применяет изменения |
+| 7 | При ошибке предлагает восстановить бэкап | Интерактивный откат |
+
+### Защитные механизмы
+
+- **safe_mv** — перед перезаписью конфига проверяет что новый файл не пустой и содержит валидный JSON. Предотвращает потерю данных при сбое `jq`.
+- **ERR trap** — при любой ошибке скрипт предлагает восстановить бэкап.
+- **Идемпотентность** — безопасно запускать повторно. Добавляет только отсутствующее, не дублирует.
 
 ### Какие defaults устанавливаются
 
@@ -46,9 +54,13 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 - `askFallback: "deny"` — если UI недоступен, блокировать
 - `autoAllowSkills: true` — автоматически разрешать бинарники из установленных скиллов
 
+### Per-agent переопределения
+
+Скрипт удаляет `security`, `ask` и `askFallback` у отдельных агентов, чтобы они наследовали от `defaults`. По [документации OpenClaw](https://docs.openclaw.ai/tools/exec-approvals) это рекомендованный подход — переопределять только когда агенту нужна более строгая или более свободная политика. Allowlist'ы сохраняются.
+
 ### Какие утилиты добавляются в allowlist
 
-Скрипт проверяет наличие 35 стандартных утилит Linux:
+Скрипт проверяет наличие 36 записей в `agents["*"].allowlist`:
 
 **Shell и интерпретаторы:**
 `/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
@@ -67,7 +79,10 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 **Пути:**
 `dirname`, `basename`, `realpath`, `readlink`
 
-> Скрипт добавляет записи только в `agents["*"].allowlist`. Записи других агентов (например, `main`) не затрагиваются. Существующие записи с `id`, `lastUsedAt` и другими метаданными сохраняются.
+**Скиллы:**
+`~/.local/bin/tg-reader*` (чтение Telegram-каналов)
+
+> Существующие записи с `id`, `lastUsedAt` и другими метаданными сохраняются. Allowlist'ы других агентов (например `main`) не изменяются.
 
 ## Требования
 
@@ -95,14 +110,22 @@ chmod +x openclaw-exec-approvals-health-check.sh
 Found config: /home/user/.openclaw/exec-approvals.json
 Backup created: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
 Defaults normalized
+  Agent "main": removed security=full (inherits from defaults)
+  Agent "main": removed ask=always (inherits from defaults)
+  Agent "main": removed askFallback=full (inherits from defaults)
+Agent overrides cleaned
   + /usr/bin/curl
   + /usr/bin/tr
-  + /usr/bin/xargs
-  + /usr/bin/stat
-  + /usr/bin/file
-Allowlist: added 5, already present 30
+Allowlist: added 2, already present 34
 Restarting gateway...
 Done. Backup: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
+To rollback: cp '...' '~/.openclaw/exec-approvals.json' && openclaw gateway restart
+```
+
+### Проверка после запуска
+
+```bash
+openclaw approvals get
 ```
 
 ## Откат изменений
@@ -118,7 +141,7 @@ openclaw gateway restart
 
 ## Тесты
 
-В проекте есть 12 автоматических тестов, которые проверяют все сценарии работы скрипта:
+В проекте есть 13 автоматических тестов, которые проверяют все сценарии работы скрипта:
 
 ```bash
 bash tests/run-tests.sh
@@ -134,7 +157,10 @@ bash tests/run-tests.sh
 - Существующие записи (id, lastUsedAt) не теряются
 - Дубликаты не добавляются
 - Ошибки при отсутствии конфига или битом JSON
-- Агент `main` не затрагивается
+- Version и socket поля сохраняются
+- Allowlist агента `main` не затрагивается
+- Новые записи идут в `agents["*"]`, а не в `agents["main"]`
+- Per-agent переопределения security/ask/askFallback удаляются
 - Gateway restart вызывается
 
 ### Pre-push hook
@@ -157,6 +183,7 @@ chmod +x .git/hooks/pre-push
 
 - [Exec Approvals](https://docs.openclaw.ai/tools/exec-approvals) — формат конфига, allowlist, паттерны
 - [Exec Tool](https://docs.openclaw.ai/tools/exec) — как работает выполнение команд
+- [Approvals CLI](https://docs.openclaw.ai/cli/approvals) — `openclaw approvals get/set/allowlist`
 - [Skills](https://docs.openclaw.ai/cli/skills) — скиллы и autoAllowSkills
 - [Tools Overview](https://docs.openclaw.ai/tools) — все инструменты OpenClaw
 

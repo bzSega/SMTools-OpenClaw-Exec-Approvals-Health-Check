@@ -14,8 +14,9 @@ OpenClaw uses `~/.openclaw/exec-approvals.json` to control which binaries the ag
 
 - The agent may be blocked on harmless commands (`cat`, `ls`, `grep`)
 - Or have overly broad permissions (`security: "full"`)
+- Per-agent overrides (like `ask: "always"`) can conflict with defaults
 
-This script sets a **recommended baseline**: `allowlist` mode + standard Linux utilities.
+This script sets a **recommended baseline**: `allowlist` mode + standard Linux utilities + clean agent inheritance.
 
 ## What the script does
 
@@ -24,9 +25,16 @@ This script sets a **recommended baseline**: `allowlist` mode + standard Linux u
 | 1 | Creates a timestamped backup of the config | Can rollback anytime |
 | 2 | Validates config exists and is valid JSON | Won't touch broken files |
 | 3 | Normalizes `defaults` (security, ask, askFallback, autoAllowSkills) | Sets secure values |
-| 4 | Adds missing system utilities to `agents["*"].allowlist` | No duplicates, preserves existing entries |
-| 5 | Restarts the gateway | Applies changes |
-| 6 | Offers to restore backup on error | Interactive rollback |
+| 4 | Removes per-agent overrides (security, ask, askFallback) | Agents inherit from defaults cleanly |
+| 5 | Adds missing system utilities to `agents["*"].allowlist` | No duplicates, preserves existing entries |
+| 6 | Restarts the gateway | Applies changes |
+| 7 | Offers to restore backup on error | Interactive rollback |
+
+### Safety features
+
+- **safe_mv** — before overwriting config, validates that the new file is non-empty and valid JSON. Prevents data loss if `jq` fails.
+- **ERR trap** — on any error, the script offers to restore the backup interactively.
+- **Idempotent** — safe to run multiple times. Only adds what's missing, never duplicates.
 
 ### Defaults applied
 
@@ -46,9 +54,13 @@ This script sets a **recommended baseline**: `allowlist` mode + standard Linux u
 - `askFallback: "deny"` — block execution when UI is unavailable
 - `autoAllowSkills: true` — auto-allow binaries from installed skills
 
+### Per-agent overrides
+
+The script removes `security`, `ask`, and `askFallback` from individual agents so they inherit from `defaults`. Per [OpenClaw docs](https://docs.openclaw.ai/tools/exec-approvals), this is the recommended approach — override only when an agent needs stricter or more permissive policies. Allowlists are preserved.
+
 ### Binaries added to allowlist
 
-The script ensures 35 standard Linux utilities are present:
+The script ensures 36 entries are present in `agents["*"].allowlist`:
 
 **Shell & interpreters:**
 `/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
@@ -67,7 +79,10 @@ The script ensures 35 standard Linux utilities are present:
 **Paths:**
 `dirname`, `basename`, `realpath`, `readlink`
 
-> The script only modifies `agents["*"].allowlist`. Other agent entries (e.g., `main`) are not touched. Existing entries with `id`, `lastUsedAt`, and other metadata are preserved.
+**Skills:**
+`~/.local/bin/tg-reader*` (Telegram channel reader)
+
+> Existing entries with `id`, `lastUsedAt`, and other metadata are preserved. Other agent allowlists (e.g., `main`) are not modified.
 
 ## Requirements
 
@@ -95,14 +110,22 @@ chmod +x openclaw-exec-approvals-health-check.sh
 Found config: /home/user/.openclaw/exec-approvals.json
 Backup created: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
 Defaults normalized
+  Agent "main": removed security=full (inherits from defaults)
+  Agent "main": removed ask=always (inherits from defaults)
+  Agent "main": removed askFallback=full (inherits from defaults)
+Agent overrides cleaned
   + /usr/bin/curl
   + /usr/bin/tr
-  + /usr/bin/xargs
-  + /usr/bin/stat
-  + /usr/bin/file
-Allowlist: added 5, already present 30
+Allowlist: added 2, already present 34
 Restarting gateway...
 Done. Backup: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
+To rollback: cp '...' '~/.openclaw/exec-approvals.json' && openclaw gateway restart
+```
+
+### Verify after running
+
+```bash
+openclaw approvals get
 ```
 
 ## Rollback
@@ -118,7 +141,7 @@ openclaw gateway restart
 
 ## Tests
 
-The project includes 12 automated tests covering all scenarios:
+The project includes 13 automated tests covering all scenarios:
 
 ```bash
 bash tests/run-tests.sh
@@ -134,8 +157,11 @@ Tests run in isolated temp directories and never touch your real config.
 - Existing entries (id, lastUsedAt) are preserved
 - No duplicates are added
 - Errors on missing config or invalid JSON
-- `main` agent is not modified
-- Gateway restart is called
+- Version and socket fields are preserved
+- `main` agent allowlist is not modified
+- New entries go to `agents["*"]`, not `agents["main"]`
+- Per-agent security/ask/askFallback overrides are removed
+- Gateway restart command is executed
 
 ### Pre-push hook
 
@@ -157,6 +183,7 @@ chmod +x .git/hooks/pre-push
 
 - [Exec Approvals](https://docs.openclaw.ai/tools/exec-approvals) — config format, allowlist, patterns
 - [Exec Tool](https://docs.openclaw.ai/tools/exec) — how command execution works
+- [Approvals CLI](https://docs.openclaw.ai/cli/approvals) — `openclaw approvals get/set/allowlist`
 - [Skills](https://docs.openclaw.ai/cli/skills) — skills and autoAllowSkills
 - [Tools Overview](https://docs.openclaw.ai/tools) — all OpenClaw tools
 
