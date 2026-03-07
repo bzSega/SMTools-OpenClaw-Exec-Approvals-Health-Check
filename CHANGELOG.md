@@ -14,6 +14,7 @@
 - Test 13: verifies gateway restart is called
 - Known Issues section in README with sandbox.mode workaround and links to OpenClaw issues (#31036, #20141, #26496)
 - `pip`, `pip3`, `ffmpeg`, `ffprobe`, `openclaw` added to allowlist (42 entries total)
+- AGENTS.md Shell Command Rules recommendation printed after health check (instructs agent to avoid chaining/redirections incompatible with allowlist mode)
 
 ### Fixed
 - Arithmetic increment `((ADDED++))` returning exit code 1 when `ADDED=0`, causing ERR trap under `set -e`. Replaced with `$((ADDED + 1))`

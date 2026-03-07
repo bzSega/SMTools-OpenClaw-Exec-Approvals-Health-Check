@@ -90,6 +90,18 @@ The script ensures 42 entries are present in every agent's allowlist:
 
 > Allowlists are per-agent in OpenClaw (no inheritance). The script adds missing entries to **every** agent's allowlist. Existing entries with `id`, `lastUsedAt`, and other metadata are preserved.
 
+### AGENTS.md — Shell Command Rules
+
+Even with a complete allowlist, the agent may still trigger approval prompts because it generates commands with chaining (`cd dir && command`, `cmd1 || cmd2`) and redirections (`2>/dev/null`, `2>&1`). These are **rejected in allowlist mode** ([docs](https://docs.openclaw.ai/tools/exec)).
+
+The script prints a ready-to-use block for `~/.openclaw/workspace/AGENTS.md` that instructs the agent to avoid these patterns:
+
+- Use absolute paths instead of `cd dir && command`
+- No redirections (`2>/dev/null`, `2>&1`)
+- No chaining (`&&`, `||`, `;`) — execute commands separately
+
+After running the script, copy the printed block into your `AGENTS.md`. The agent will then generate allowlist-compatible commands.
+
 ## Requirements
 
 - **OS:** Ubuntu / Debian (or any Linux with `bash`)

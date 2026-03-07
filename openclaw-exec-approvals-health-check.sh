@@ -182,3 +182,63 @@ $GATEWAY_CMD
 echo ""
 echo "Done. Backup: $BACKUP"
 echo "To rollback: cp '$BACKUP' '$CONFIG' && openclaw gateway restart"
+
+# --- AGENTS.md recommendation ---
+AGENTS_MD="$HOME/.openclaw/workspace/AGENTS.md"
+echo ""
+echo "============================================================"
+echo "  RECOMMENDED: Add Shell Command Rules to AGENTS.md"
+echo "============================================================"
+echo ""
+echo "OpenClaw allowlist mode blocks chaining (&&, ||, ;) and"
+echo "redirections (2>/dev/null, >, >>). The agent naturally"
+echo "generates these patterns, causing approval prompts even"
+echo "when all binaries are in the allowlist."
+echo ""
+echo "Add the following to your AGENTS.md to instruct the agent"
+echo "to generate allowlist-compatible commands:"
+echo ""
+echo "  File: $AGENTS_MD"
+echo ""
+echo "--- copy below this line ---"
+cat << 'AGENTS_BLOCK'
+
+## Shell Command Rules
+
+**IMPORTANT: When executing shell commands, follow these rules strictly:**
+
+- **NEVER use `cd dir && command`** — use absolute paths instead
+- **NEVER use `2>/dev/null`, `2>&1`** or any redirections that hide errors
+- **NEVER use `||` or `&&` or `;`** to chain commands — execute each command separately
+- **Always call binaries with full absolute paths** to scripts when possible
+
+**Examples:**
+- BAD:  `cd /path/to/skill && python3 scripts/run.py`
+- GOOD: `python3 /path/to/skill/scripts/run.py`
+- BAD:  `find /path -name "*.txt" 2>/dev/null`
+- GOOD: `find /path -name "*.txt"`
+- BAD:  `ls /path || echo "not found"`
+- GOOD: `ls /path`
+- BAD:  `ffmpeg -i input.ogg output.wav 2>&1 | head -20`
+- GOOD: `ffmpeg -i input.ogg output.wav`
+
+**Why:** These rules ensure commands pass OpenClaw exec-approvals
+allowlist validation without triggering approval prompts.
+
+**Exception:** Only use chaining/redirection when explicitly debugging
+or when the user specifically requests it.
+AGENTS_BLOCK
+echo "--- copy above this line ---"
+echo ""
+if [ -f "$AGENTS_MD" ]; then
+  if grep -q "Shell Command Rules" "$AGENTS_MD" 2>/dev/null; then
+    echo "  ✓ AGENTS.md already contains Shell Command Rules"
+  else
+    echo "  ⚠ AGENTS.md exists but does not contain Shell Command Rules"
+    echo "    Add the block above to: $AGENTS_MD"
+  fi
+else
+  echo "  ⚠ AGENTS.md not found at: $AGENTS_MD"
+  echo "    Create the file and paste the block above"
+fi
+echo "============================================================"
