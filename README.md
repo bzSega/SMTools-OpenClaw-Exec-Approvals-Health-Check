@@ -182,6 +182,25 @@ EOF
 chmod +x .git/hooks/pre-push
 ```
 
+## Known issues
+
+### Sandbox overrides exec-approvals (`ask: off` still prompts)
+
+Even with correct exec-approvals config (`ask: off`, `security: allowlist`), approval prompts may still appear. This is caused by `agents.defaults.sandbox.mode` defaulting to `"non-main"`, which silently overrides exec-approvals settings ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036)).
+
+**Workaround:**
+
+```bash
+openclaw config set agents.defaults.sandbox.mode off
+systemctl --user restart openclaw-gateway.service
+```
+
+### Related OpenClaw issues
+
+- [#31036](https://github.com/openclaw/openclaw/issues/31036) — sandbox.mode silently conflicts with exec-approvals
+- [#20141](https://github.com/openclaw/openclaw/issues/20141) — "Always Allow + Never Ask" still prompts (fix pending)
+- [#26496](https://github.com/openclaw/openclaw/issues/26496) — exec-approvals.sock not created on headless Linux
+
 ## OpenClaw documentation
 
 - [Exec Approvals](https://docs.openclaw.ai/tools/exec-approvals) — config format, allowlist, patterns

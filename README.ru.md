@@ -182,6 +182,25 @@ EOF
 chmod +x .git/hooks/pre-push
 ```
 
+## Известные проблемы
+
+### Sandbox перекрывает exec-approvals (`ask: off` всё равно спрашивает)
+
+Даже при правильном конфиге exec-approvals (`ask: off`, `security: allowlist`) запросы на подтверждение могут продолжать появляться. Причина — `agents.defaults.sandbox.mode` по умолчанию стоит в `"non-main"`, что тихо перекрывает настройки exec-approvals ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036)).
+
+**Обходное решение:**
+
+```bash
+openclaw config set agents.defaults.sandbox.mode off
+systemctl --user restart openclaw-gateway.service
+```
+
+### Связанные issues OpenClaw
+
+- [#31036](https://github.com/openclaw/openclaw/issues/31036) — sandbox.mode тихо конфликтует с exec-approvals
+- [#20141](https://github.com/openclaw/openclaw/issues/20141) — «Always Allow + Never Ask» всё равно спрашивает (фикс в процессе)
+- [#26496](https://github.com/openclaw/openclaw/issues/26496) — exec-approvals.sock не создается на headless Linux
+
 ## Документация OpenClaw
 
 - [Exec Approvals](https://docs.openclaw.ai/tools/exec-approvals) — формат конфига, allowlist, паттерны
