@@ -118,6 +118,7 @@ BINARIES=(
   "/usr/bin/basename"
   "/usr/bin/realpath"
   "/usr/bin/readlink"
+  "$HOME/.local/bin/tg-reader*"
 )
 
 ADDED=0
