@@ -476,7 +476,42 @@ fi
 teardown_tmpdir
 
 # =============================================
-# TEST 12: gateway restart command is called
+# TEST 12: per-agent ask=always is normalized to off
+# =============================================
+run_test "Per-agent ask=always is normalized to off"
+setup_tmpdir
+
+cat > "$OPENCLAW_CONFIG" << 'EOF'
+{
+  "version": 1,
+  "defaults": {},
+  "agents": {
+    "*": {
+      "allowlist": [],
+      "ask": "always"
+    },
+    "main": {
+      "allowlist": [],
+      "ask": "always"
+    }
+  }
+}
+EOF
+
+bash "$HEALTH_CHECK" >/dev/null 2>&1
+
+STAR_ASK=$(jq -r '.agents["*"].ask' "$OPENCLAW_CONFIG")
+MAIN_ASK=$(jq -r '.agents["main"].ask' "$OPENCLAW_CONFIG")
+
+if [ "$STAR_ASK" = "off" ] && [ "$MAIN_ASK" = "off" ]; then
+  pass
+else
+  fail "agents[*].ask=$STAR_ASK agents[main].ask=$MAIN_ASK"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 13: gateway restart command is called
 # =============================================
 run_test "Gateway restart command is executed"
 setup_tmpdir

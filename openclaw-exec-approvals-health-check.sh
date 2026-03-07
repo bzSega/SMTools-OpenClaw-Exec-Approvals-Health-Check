@@ -81,6 +81,21 @@ jq '
 safe_mv "$TMP" "$CONFIG"
 echo "Defaults normalized"
 
+# --- normalize per-agent settings ---
+jq -r '.agents | keys[]' "$CONFIG" | while IFS= read -r agent; do
+  HAS_ASK=$(jq --arg a "$agent" 'has("agents") and (.agents[$a] | has("ask"))' "$CONFIG")
+  if [ "$HAS_ASK" = "true" ]; then
+    AGENT_ASK=$(jq -r --arg a "$agent" '.agents[$a].ask' "$CONFIG")
+    if [ "$AGENT_ASK" != "off" ]; then
+      TMP=$(mktemp)
+      jq --arg a "$agent" '.agents[$a].ask = "off"' "$CONFIG" > "$TMP"
+      safe_mv "$TMP" "$CONFIG"
+      echo "  Agent \"$agent\": ask=$AGENT_ASK -> off"
+    fi
+  fi
+done
+echo "Agent settings normalized"
+
 # --- binaries to ensure in allowlist ---
 BINARIES=(
   "/usr/bin/env"
