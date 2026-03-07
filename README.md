@@ -1,30 +1,34 @@
 # OpenClaw Exec-Approvals Health Check
 
-Bash-скрипт для безопасной проверки и настройки `exec-approvals.json` на вашей VM с OpenClaw.
+[![Language: Bash](https://img.shields.io/badge/language-bash-green)]()
 
-Если вы только что установили OpenClaw и не знаете, как правильно настроить execution approvals — запустите этот скрипт. Он проверит текущий конфиг, выставит безопасные defaults и добавит стандартные системные утилиты в allowlist.
+> **[README on Russian / README на русском](README.ru.md)**
 
-## Зачем это нужно?
+A bash script for safe health check and configuration of `exec-approvals.json` on your OpenClaw VM.
 
-OpenClaw использует файл `~/.openclaw/exec-approvals.json` для контроля того, какие бинарники агент может запускать на хосте. Без правильной настройки:
+If you just installed OpenClaw and don't know how to properly configure execution approvals — run this script. It will validate your current config, set secure defaults, and add standard system utilities to the allowlist.
 
-- Агент может быть заблокирован на безобидных командах (`cat`, `ls`, `grep`)
-- Или наоборот — иметь слишком широкие права (`security: "full"`)
+## Why?
 
-Этот скрипт выставляет **рекомендованный baseline**: режим `allowlist` + набор стандартных утилит Linux.
+OpenClaw uses `~/.openclaw/exec-approvals.json` to control which binaries the agent can execute on the host. Without proper configuration:
 
-## Что делает скрипт
+- The agent may be blocked on harmless commands (`cat`, `ls`, `grep`)
+- Or have overly broad permissions (`security: "full"`)
 
-| Шаг | Действие | Безопасность |
-|-----|----------|--------------|
-| 1 | Создает бэкап конфига с таймстампом | Можно откатить в любой момент |
-| 2 | Проверяет что конфиг существует и валидный JSON | Не трогает битые файлы |
-| 3 | Нормализует `defaults` (security, ask, askFallback, autoAllowSkills) | Выставляет безопасные значения |
-| 4 | Добавляет отсутствующие системные утилиты в `agents["*"].allowlist` | Не дублирует, не удаляет существующие |
-| 5 | Перезапускает gateway | Применяет изменения |
-| 6 | При ошибке предлагает восстановить бэкап | Интерактивный откат |
+This script sets a **recommended baseline**: `allowlist` mode + standard Linux utilities.
 
-### Какие defaults устанавливаются
+## What the script does
+
+| Step | Action | Safety |
+|------|--------|--------|
+| 1 | Creates a timestamped backup of the config | Can rollback anytime |
+| 2 | Validates config exists and is valid JSON | Won't touch broken files |
+| 3 | Normalizes `defaults` (security, ask, askFallback, autoAllowSkills) | Sets secure values |
+| 4 | Adds missing system utilities to `agents["*"].allowlist` | No duplicates, preserves existing entries |
+| 5 | Restarts the gateway | Applies changes |
+| 6 | Offers to restore backup on error | Interactive rollback |
+
+### Defaults applied
 
 ```json
 {
@@ -37,55 +41,55 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 }
 ```
 
-- `security: "allowlist"` — разрешены только бинарники из списка
-- `ask: "off"` — не спрашивать подтверждение (если бинарник в allowlist)
-- `askFallback: "deny"` — если UI недоступен, блокировать
-- `autoAllowSkills: true` — автоматически разрешать бинарники из установленных скиллов
+- `security: "allowlist"` — only allowlisted binaries can run
+- `ask: "off"` — no confirmation prompts for allowlisted binaries
+- `askFallback: "deny"` — block execution when UI is unavailable
+- `autoAllowSkills: true` — auto-allow binaries from installed skills
 
-### Какие утилиты добавляются в allowlist
+### Binaries added to allowlist
 
-Скрипт проверяет наличие 35 стандартных утилит Linux:
+The script ensures 35 standard Linux utilities are present:
 
-**Shell и интерпретаторы:**
+**Shell & interpreters:**
 `/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
 
-**Сеть:** `/usr/bin/curl`
+**Network:** `/usr/bin/curl`
 
-**Текст и данные:**
+**Text processing:**
 `grep`, `cat`, `sed`, `awk`, `sort`, `uniq`, `head`, `tail`, `cut`, `tr`, `wc`, `printf`
 
-**Файлы и директории:**
+**Files & directories:**
 `find`, `xargs`, `ls`, `pwd`, `mkdir`, `rm`, `cp`, `mv`
 
-**Инспекция:**
+**Inspection:**
 `test`, `which`, `stat`, `file`, `date`
 
-**Пути:**
+**Paths:**
 `dirname`, `basename`, `realpath`, `readlink`
 
-> Скрипт добавляет записи только в `agents["*"].allowlist`. Записи других агентов (например, `main`) не затрагиваются. Существующие записи с `id`, `lastUsedAt` и другими метаданными сохраняются.
+> The script only modifies `agents["*"].allowlist`. Other agent entries (e.g., `main`) are not touched. Existing entries with `id`, `lastUsedAt`, and other metadata are preserved.
 
-## Требования
+## Requirements
 
-- **OS:** Ubuntu / Debian (или другой Linux с `bash`)
+- **OS:** Ubuntu / Debian (or any Linux with `bash`)
 - **jq:** `sudo apt install jq`
-- **OpenClaw:** установлен и инициализирован (`~/.openclaw/exec-approvals.json` существует)
+- **OpenClaw:** installed and initialized (`~/.openclaw/exec-approvals.json` must exist)
 
-## Установка и запуск
+## Installation & usage
 
 ```bash
-# Клонировать
+# Clone
 git clone https://github.com/bzSega/SMTools-OpenClaw-Exec-Approvals-Health-Check.git
 cd SMTools-OpenClaw-Exec-Approvals-Health-Check
 
-# Сделать исполняемым
+# Make executable
 chmod +x openclaw-exec-approvals-health-check.sh
 
-# Запустить
+# Run
 ./openclaw-exec-approvals-health-check.sh
 ```
 
-### Пример вывода
+### Example output
 
 ```
 Found config: /home/user/.openclaw/exec-approvals.json
@@ -101,45 +105,44 @@ Restarting gateway...
 Done. Backup: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
 ```
 
-## Откат изменений
+## Rollback
 
-Если что-то пошло не так:
+If something goes wrong:
 
 ```bash
-# Скрипт при ошибке предложит восстановить автоматически.
-# Или вручную:
+# The script will offer to restore automatically on error.
+# Or manually:
 cp ~/.openclaw/exec-approvals.backup.YYYYMMDD_HHMMSS.json ~/.openclaw/exec-approvals.json
 openclaw gateway restart
 ```
 
-## Тесты
+## Tests
 
-В проекте есть 12 автоматических тестов, которые проверяют все сценарии работы скрипта:
+The project includes 12 automated tests covering all scenarios:
 
 ```bash
 bash tests/run-tests.sh
 ```
 
-Тесты запускаются в изолированных временных директориях, не трогают ваш реальный конфиг.
+Tests run in isolated temp directories and never touch your real config.
 
-### Что проверяют тесты
+### What the tests cover
 
-- Бэкап создается и совпадает с оригиналом
-- Неправильные defaults исправляются
-- Пустой allowlist заполняется полностью
-- Существующие записи (id, lastUsedAt) не теряются
-- Дубликаты не добавляются
-- Ошибки при отсутствии конфига или битом JSON
-- Агент `main` не затрагивается
-- Gateway restart вызывается
+- Backup is created and matches the original
+- Incorrect defaults are fixed
+- Empty allowlist is fully populated
+- Existing entries (id, lastUsedAt) are preserved
+- No duplicates are added
+- Errors on missing config or invalid JSON
+- `main` agent is not modified
+- Gateway restart is called
 
 ### Pre-push hook
 
-Тесты автоматически прогоняются перед `git push`:
+Tests run automatically before `git push`:
 
 ```bash
-# Установка хука (одноразово после клонирования)
-cp .git/hooks/pre-push.sample .git/hooks/pre-push 2>/dev/null || true
+# One-time setup after cloning
 cat > .git/hooks/pre-push << 'EOF'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -150,13 +153,13 @@ EOF
 chmod +x .git/hooks/pre-push
 ```
 
-## Документация OpenClaw
+## OpenClaw documentation
 
-- [Exec Approvals](https://docs.openclaw.ai/tools/exec-approvals) — формат конфига, allowlist, паттерны
-- [Exec Tool](https://docs.openclaw.ai/tools/exec) — как работает выполнение команд
-- [Skills](https://docs.openclaw.ai/cli/skills) — скиллы и autoAllowSkills
-- [Tools Overview](https://docs.openclaw.ai/tools) — все инструменты OpenClaw
+- [Exec Approvals](https://docs.openclaw.ai/tools/exec-approvals) — config format, allowlist, patterns
+- [Exec Tool](https://docs.openclaw.ai/tools/exec) — how command execution works
+- [Skills](https://docs.openclaw.ai/cli/skills) — skills and autoAllowSkills
+- [Tools Overview](https://docs.openclaw.ai/tools) — all OpenClaw tools
 
-## Лицензия
+## License
 
 MIT
