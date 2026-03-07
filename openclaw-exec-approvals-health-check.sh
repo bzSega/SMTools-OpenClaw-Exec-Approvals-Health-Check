@@ -120,9 +120,9 @@ for bin in "${BINARIES[@]}"; do
     ' "$CONFIG" > "$TMP"
     mv "$TMP" "$CONFIG"
     echo "  + $bin"
-    ((ADDED++))
+    ADDED=$((ADDED + 1))
   else
-    ((SKIPPED++))
+    SKIPPED=$((SKIPPED + 1))
   fi
 
 done
