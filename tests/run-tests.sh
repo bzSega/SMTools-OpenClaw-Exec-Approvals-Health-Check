@@ -285,8 +285,8 @@ EOF
 bash "$HEALTH_CHECK" >/dev/null 2>&1
 
 COUNT=$(jq '.agents["*"].allowlist | length' "$OPENCLAW_CONFIG")
-# Script has 42 entries in the list (40 system + tg-reader + venv python3)
-if [ "$COUNT" -ge 42 ]; then
+# Script has 44 entries in the list (42 system + tg-reader + venv python3)
+if [ "$COUNT" -ge 44 ]; then
   pass
 else
   fail "Expected >= 35 entries, got $COUNT"
@@ -425,13 +425,13 @@ create_fixture_realistic
 
 bash "$HEALTH_CHECK" >/dev/null 2>&1
 
-# main should have at least 42 entries now (12 original + missing ones)
+# main should have at least 44 entries now (12 original + missing ones)
 MAIN_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
 
-if [ "$MAIN_COUNT" -ge 42 ]; then
+if [ "$MAIN_COUNT" -ge 44 ]; then
   pass
 else
-  fail "main allowlist: expected >= 42, got $MAIN_COUNT"
+  fail "main allowlist: expected >= 44, got $MAIN_COUNT"
 fi
 teardown_tmpdir
 

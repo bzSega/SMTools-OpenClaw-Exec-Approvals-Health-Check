@@ -126,6 +126,8 @@ BINARIES=(
   "/usr/bin/which"
   "/usr/bin/stat"
   "/usr/bin/file"
+  "/usr/bin/chmod"
+  "/usr/bin/touch"
   "/usr/bin/mkdir"
   "/usr/bin/rm"
   "/usr/bin/cp"
@@ -222,8 +224,11 @@ cat << 'AGENTS_BLOCK'
 - BAD:  `ffmpeg -i input.ogg output.wav 2>&1 | head -20`
 - GOOD: `ffmpeg -i input.ogg output.wav`
 
-**Why:** These rules ensure commands pass OpenClaw exec-approvals
-allowlist validation without triggering approval prompts.
+**Why these rules matter:**
+1. OpenClaw allowlist mode rejects chaining and redirections
+2. The exec tool already captures both stdout AND stderr —
+   `2>/dev/null` and `2>&1` are unnecessary, you see all errors anyway
+3. Each command should be a single binary call for allowlist validation
 
 **Exception:** Only use chaining/redirection when explicitly debugging
 or when the user specifically requests it.
