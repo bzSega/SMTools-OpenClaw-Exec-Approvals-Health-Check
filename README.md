@@ -5,7 +5,7 @@
 
 > **[README on Russian / README на русском](README.ru.md)**
 
-An interactive bash script for safe health check and configuration of `exec-approvals.json` on your OpenClaw VM.
+An interactive bash script that speeds up granting the right execution permissions to OpenClaw agents — without opening the Dashboard and without granting unrestricted access.
 
 If you just installed OpenClaw and don't know how to properly configure execution approvals — run this script. It will validate your current config, set secure defaults, and let you choose which permission groups to enable.
 
@@ -13,12 +13,13 @@ If you just installed OpenClaw and don't know how to properly configure executio
 
 OpenClaw uses `~/.openclaw/exec-approvals.json` to control which binaries the agent can execute on the host. Without proper configuration:
 
-- The agent may be blocked on harmless commands (`cat`, `ls`, `grep`)
-- Or have overly broad permissions (`security: "full"`)
-- Per-agent overrides (like `ask: "always"`) can conflict with defaults
-- Redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) are rejected in allowlist mode
+- The agent is blocked on harmless commands (`cat`, `ls`, `grep`) and you have to approve each one via Dashboard
+- The Dashboard UI doesn't work remotely (e.g., via Telegram) — you have to open a browser every time
+- The only alternative is `security: "full"` — unrestricted access with no control
+- Redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) are rejected in allowlist mode even when all binaries are allowlisted
+- Allowlists are per-agent with no inheritance — `agents["*"]` does not cover `agents["main"]`
 
-This script sets a **recommended baseline**: `allowlist` mode + selected permission groups + AGENTS.md rules + clean agent inheritance.
+This script sets a **recommended baseline** in one command: `allowlist` mode + selected permission groups + AGENTS.md rules + clean agent inheritance. It also works around [known OpenClaw issues](#known-issues) that cause prompts even with correct configuration.
 
 ## Usage modes
 
@@ -43,7 +44,7 @@ Non-terminal stdin (e.g., piped input) automatically falls back to `--all` mode.
 | 4 | Removes per-agent overrides (security, ask, askFallback) | Agents inherit from defaults cleanly |
 | 5 | Shows interactive menu to select permission groups | User controls what to allow |
 | 6 | Adds selected binaries to **every agent's** allowlist | No duplicates, preserves existing entries |
-| 7 | Updates AGENTS.md with Shell Command Rules | Prevents chaining/redirection issues |
+| 7 | Updates AGENTS.md with Shell Command Rules | Prevents redirection/pipe issues |
 | 8 | Restarts the gateway | Applies changes |
 | 9 | Offers to restore backup on error | Interactive rollback |
 

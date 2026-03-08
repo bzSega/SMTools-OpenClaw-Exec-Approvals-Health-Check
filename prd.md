@@ -1,5 +1,9 @@
 # PRD: OpenClaw Exec-Approvals Health Check v2.0
 
+## Goal
+
+Speed up granting the right execution permissions to OpenClaw agents on headless VMs — without opening the Dashboard and without granting unrestricted access.
+
 ## Pain Point
 
 OpenClaw agents on headless VMs constantly trigger exec-approval prompts for routine commands. The user faces three problems:
@@ -8,16 +12,22 @@ OpenClaw agents on headless VMs constantly trigger exec-approval prompts for rou
 2. **Dashboard overhead** — every new binary or command pattern requires opening the web UI to approve
 3. **No middle ground** — the only alternative is `security: "full"` which grants unrestricted access, which the user explicitly does not want
 
-Additional discovered issues:
-- Allowlists are **per-agent with no inheritance** — adding binaries to `agents["*"]` does not cover `agents["main"]`
-- `sandbox.mode: "non-main"` silently overrides `ask: off` ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036))
-- Redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) are **rejected in allowlist mode** even when all binaries are allowlisted
-- Shell chaining (`&&`, `||`, `;`) was rejected before v2026.3.7 but is now allowed when every segment is allowlisted
-- The agent naturally generates redirections and pipes, causing prompts regardless of allowlist completeness
+### Known OpenClaw issues (discovered during development)
+
+| Issue | Status | Description |
+|-------|--------|-------------|
+| Allowlists are per-agent | By design | Adding binaries to `agents["*"]` does not cover `agents["main"]` — no inheritance |
+| [#31036](https://github.com/openclaw/openclaw/issues/31036) | **Open** | `sandbox.mode: "non-main"` silently overrides `ask: off` |
+| [#20141](https://github.com/openclaw/openclaw/issues/20141) | **Fixed in v2026.3.7** | "Always Allow + Never Ask" still prompted |
+| [#26496](https://github.com/openclaw/openclaw/issues/26496) | **Fixed in v2026.3.7** | `exec-approvals.sock` not created on headless Linux |
+| Redirections rejected | By design | `2>/dev/null`, `2>&1`, pipes (`\|`) are rejected in allowlist mode |
+| Chaining rejected | **Fixed in v2026.3.7** | `&&`, `\|\|`, `;` now allowed when every segment is allowlisted |
+
+The agent naturally generates redirections and pipes, causing prompts regardless of allowlist completeness. This requires AGENTS.md rules to instruct the agent to avoid these patterns.
 
 ## Solution
 
-An interactive bash script that lets the user configure exec-approvals permissions in a controlled, understandable way — without granting full access and without opening the Dashboard.
+An interactive bash script that lets the user configure exec-approvals permissions in a controlled, understandable way — without granting full access and without opening the Dashboard. The script works around known OpenClaw issues and applies best practices from the documentation.
 
 ## Three Phases
 
@@ -44,7 +54,7 @@ The script presents 12 permission groups with human-readable descriptions. The u
 
 ### Phase 2: AGENTS.md Auto-Update (v2.0)
 
-After configuring permissions, the script offers to update `AGENTS.md` with Shell Command Rules that instruct the agent to avoid chaining and redirections. This prevents the agent from generating commands that are incompatible with allowlist mode.
+After configuring permissions, the script offers to update `AGENTS.md` with Shell Command Rules that instruct the agent to avoid redirections and pipes — patterns that are rejected in allowlist mode even when all binaries are allowlisted.
 
 The script:
 - Finds AGENTS.md in `~/.openclaw/workspace/`
