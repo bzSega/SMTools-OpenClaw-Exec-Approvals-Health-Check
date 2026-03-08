@@ -16,7 +16,7 @@ OpenClaw uses `~/.openclaw/exec-approvals.json` to control which binaries the ag
 - The agent may be blocked on harmless commands (`cat`, `ls`, `grep`)
 - Or have overly broad permissions (`security: "full"`)
 - Per-agent overrides (like `ask: "always"`) can conflict with defaults
-- Shell chaining (`&&`, `||`, `;`) and redirections (`2>/dev/null`) are rejected in allowlist mode
+- Redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) are rejected in allowlist mode
 
 This script sets a **recommended baseline**: `allowlist` mode + selected permission groups + AGENTS.md rules + clean agent inheritance.
 
@@ -122,7 +122,9 @@ Groups 1-6 (35 binaries) are pre-selected as essential. Groups 7-12 are opt-in.
 
 ### AGENTS.md — Shell Command Rules
 
-Even with a complete allowlist, the agent may still trigger approval prompts because it generates commands with chaining (`cd dir && command`, `cmd1 || cmd2`) and redirections (`2>/dev/null`, `2>&1`). These are **rejected in allowlist mode** ([docs](https://docs.openclaw.ai/tools/exec)).
+Even with a complete allowlist, the agent may still trigger approval prompts because it generates commands with redirections (`2>/dev/null`, `2>&1`) and pipes (`|`). These are **rejected in allowlist mode** ([docs](https://docs.openclaw.ai/tools/exec)).
+
+> **Note:** Since v2026.3.7, shell chaining (`&&`, `||`, `;`) **is allowed** when every segment satisfies the allowlist. Redirections and pipes remain unsupported.
 
 The script automatically manages `~/.openclaw/workspace/AGENTS.md`:
 
@@ -133,9 +135,9 @@ The script automatically manages `~/.openclaw/workspace/AGENTS.md`:
 
 The Shell Command Rules instruct the agent to:
 
-- Use absolute paths instead of `cd dir && command`
 - No redirections (`2>/dev/null`, `2>&1`) — the exec tool captures both stdout and stderr
-- No chaining (`&&`, `||`, `;`) — execute commands separately
+- No pipes (`|`) — rejected in allowlist mode
+- Chaining (`&&`, `||`, `;`) is OK when every command is allowlisted
 
 ## Requirements
 
@@ -249,7 +251,7 @@ chmod +x .git/hooks/pre-push
 
 ### Sandbox overrides exec-approvals (`ask: off` still prompts)
 
-Even with correct exec-approvals config (`ask: off`, `security: allowlist`), approval prompts may still appear. This is caused by `agents.defaults.sandbox.mode` defaulting to `"non-main"`, which silently overrides exec-approvals settings ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036)).
+Even with correct exec-approvals config (`ask: off`, `security: allowlist`), approval prompts may still appear. This is caused by `agents.defaults.sandbox.mode` defaulting to `"non-main"`, which silently overrides exec-approvals settings ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036) — still open).
 
 **Workaround:**
 
@@ -258,11 +260,17 @@ openclaw config set agents.defaults.sandbox.mode off
 systemctl --user restart openclaw-gateway.service
 ```
 
+### Safe bins (v2026.3.7+)
+
+OpenClaw now has built-in "safe bins" that work without explicit allowlist entries: `jq`, `cut`, `uniq`, `head`, `tail`, `tr`, `wc`. These are auto-allowed with restricted argv policies. Our script still adds them to the allowlist for backward compatibility, which does no harm.
+
+See [exec-approvals docs](https://docs.openclaw.ai/tools/exec-approvals) for `tools.exec.safeBins` and `tools.exec.safeBinProfiles`.
+
 ### Related OpenClaw issues
 
-- [#31036](https://github.com/openclaw/openclaw/issues/31036) — sandbox.mode silently conflicts with exec-approvals
-- [#20141](https://github.com/openclaw/openclaw/issues/20141) — "Always Allow + Never Ask" still prompts (fix pending)
-- [#26496](https://github.com/openclaw/openclaw/issues/26496) — exec-approvals.sock not created on headless Linux
+- [#31036](https://github.com/openclaw/openclaw/issues/31036) — sandbox.mode silently conflicts with exec-approvals (open)
+- [#20141](https://github.com/openclaw/openclaw/issues/20141) — "Always Allow + Never Ask" still prompts — **fixed in v2026.3.7**
+- [#26496](https://github.com/openclaw/openclaw/issues/26496) — exec-approvals.sock not created on headless Linux — **fixed in v2026.3.7**
 
 ## OpenClaw documentation
 

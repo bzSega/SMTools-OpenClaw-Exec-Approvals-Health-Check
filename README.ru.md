@@ -16,7 +16,7 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 - Агент может быть заблокирован на безобидных командах (`cat`, `ls`, `grep`)
 - Или наоборот — иметь слишком широкие права (`security: "full"`)
 - Per-agent переопределения (например `ask: "always"`) могут конфликтовать с defaults
-- Чейнинг команд (`&&`, `||`, `;`) и редиректы (`2>/dev/null`) блокируются в режиме allowlist
+- Редиректы (`2>/dev/null`, `2>&1`) и пайпы (`|`) блокируются в режиме allowlist
 
 Этот скрипт выставляет **рекомендованный baseline**: режим `allowlist` + выбранные группы разрешений + правила AGENTS.md + чистое наследование настроек агентов.
 
@@ -122,7 +122,9 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 ### AGENTS.md — правила для shell-команд
 
-Даже при полном allowlist агент может вызывать промпты, потому что генерирует команды с чейнингом (`cd dir && command`, `cmd1 || cmd2`) и редиректами (`2>/dev/null`, `2>&1`). В режиме allowlist они **блокируются** ([документация](https://docs.openclaw.ai/tools/exec)).
+Даже при полном allowlist агент может вызывать промпты, потому что генерирует команды с редиректами (`2>/dev/null`, `2>&1`) и пайпами (`|`). В режиме allowlist они **блокируются** ([документация](https://docs.openclaw.ai/tools/exec)).
+
+> **Примечание:** Начиная с v2026.3.7 чейнинг команд (`&&`, `||`, `;`) **разрешен**, если каждый сегмент в цепочке есть в allowlist. Редиректы и пайпы по-прежнему блокируются.
 
 Скрипт автоматически управляет файлом `~/.openclaw/workspace/AGENTS.md`:
 
@@ -133,9 +135,9 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 Shell Command Rules инструктируют агента:
 
-- Использовать абсолютные пути вместо `cd dir && command`
 - Не использовать редиректы (`2>/dev/null`, `2>&1`) — exec tool уже захватывает и stdout и stderr
-- Не использовать чейнинг (`&&`, `||`, `;`) — выполнять команды по отдельности
+- Не использовать пайпы (`|`) — блокируются в режиме allowlist
+- Чейнинг (`&&`, `||`, `;`) разрешен если все команды в allowlist
 
 ## Требования
 
@@ -249,7 +251,7 @@ chmod +x .git/hooks/pre-push
 
 ### Sandbox перекрывает exec-approvals (`ask: off` всё равно спрашивает)
 
-Даже при правильном конфиге exec-approvals (`ask: off`, `security: allowlist`) запросы на подтверждение могут продолжать появляться. Причина — `agents.defaults.sandbox.mode` по умолчанию стоит в `"non-main"`, что тихо перекрывает настройки exec-approvals ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036)).
+Даже при правильном конфиге exec-approvals (`ask: off`, `security: allowlist`) запросы на подтверждение могут продолжать появляться. Причина — `agents.defaults.sandbox.mode` по умолчанию стоит в `"non-main"`, что тихо перекрывает настройки exec-approvals ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036) — всё ещё открыт).
 
 **Обходное решение:**
 
@@ -258,11 +260,17 @@ openclaw config set agents.defaults.sandbox.mode off
 systemctl --user restart openclaw-gateway.service
 ```
 
+### Safe bins (v2026.3.7+)
+
+В OpenClaw появились встроенные «безопасные бинарники» которые работают без явного allowlist: `jq`, `cut`, `uniq`, `head`, `tail`, `tr`, `wc`. Они авто-разрешены с ограниченными политиками argv. Наш скрипт по-прежнему добавляет их в allowlist для обратной совместимости — это не навредит.
+
+Подробнее: [документация exec-approvals](https://docs.openclaw.ai/tools/exec-approvals) — `tools.exec.safeBins` и `tools.exec.safeBinProfiles`.
+
 ### Связанные issues OpenClaw
 
-- [#31036](https://github.com/openclaw/openclaw/issues/31036) — sandbox.mode тихо конфликтует с exec-approvals
-- [#20141](https://github.com/openclaw/openclaw/issues/20141) — «Always Allow + Never Ask» всё равно спрашивает (фикс в процессе)
-- [#26496](https://github.com/openclaw/openclaw/issues/26496) — exec-approvals.sock не создается на headless Linux
+- [#31036](https://github.com/openclaw/openclaw/issues/31036) — sandbox.mode тихо конфликтует с exec-approvals (открыт)
+- [#20141](https://github.com/openclaw/openclaw/issues/20141) — «Always Allow + Never Ask» всё равно спрашивает — **исправлено в v2026.3.7**
+- [#26496](https://github.com/openclaw/openclaw/issues/26496) — exec-approvals.sock не создается на headless Linux — **исправлено в v2026.3.7**
 
 ## Документация OpenClaw
 

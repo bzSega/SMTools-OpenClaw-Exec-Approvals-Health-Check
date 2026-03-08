@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="2.0.0"
+VERSION="2.0.1"
 CONFIG="${OPENCLAW_CONFIG:-$HOME/.openclaw/exec-approvals.json}"
 BACKUP=""
 GATEWAY_CMD="${OPENCLAW_GATEWAY_CMD:-openclaw gateway restart}"
@@ -372,28 +372,28 @@ AGENTS_MD_BLOCK='## Shell Command Rules
 
 **IMPORTANT: When executing shell commands, follow these rules strictly:**
 
-- **NEVER use `cd dir && command`** — use absolute paths instead
-- **NEVER use `2>/dev/null`, `2>&1`** or any redirections that hide errors
-- **NEVER use `||` or `&&` or `;`** to chain commands — execute each command separately
-- **Always call binaries with full absolute paths** to scripts when possible
+- **NEVER use `2>/dev/null`, `2>&1`** or any redirections — they are rejected in allowlist mode
+- **NEVER use pipes** (`|`) — they are rejected in allowlist mode
+- **Prefer absolute paths** to scripts when possible
+- **Chaining (`&&`, `||`, `;`) is OK** — as long as every command in the chain is in the allowlist
 
 **Examples:**
-- BAD:  `cd /path/to/skill && python3 scripts/run.py`
-- GOOD: `python3 /path/to/skill/scripts/run.py`
 - BAD:  `find /path -name "*.txt" 2>/dev/null`
 - GOOD: `find /path -name "*.txt"`
-- BAD:  `ls /path || echo "not found"`
-- GOOD: `ls /path`
 - BAD:  `ffmpeg -i input.ogg output.wav 2>&1 | head -20`
 - GOOD: `ffmpeg -i input.ogg output.wav`
+- BAD:  `ls /path 2>/dev/null || echo "not found"`
+- GOOD: `ls /path`
+- OK:   `cd /path/to/skill && python3 scripts/run.py`
+- OK:   `mkdir -p /tmp/out && cp file.txt /tmp/out/`
 
 **Why these rules matter:**
-1. OpenClaw allowlist mode rejects chaining and redirections
+1. OpenClaw allowlist mode rejects redirections and pipes
 2. The exec tool already captures both stdout AND stderr —
    `2>/dev/null` and `2>&1` are unnecessary, you see all errors anyway
-3. Each command should be a single binary call for allowlist validation
+3. Chaining works since v2026.3.7 when every segment is allowlisted
 
-**Exception:** Only use chaining/redirection when explicitly debugging
+**Exception:** Only use redirections when explicitly debugging
 or when the user specifically requests it.'
 
 update_agents_md() {

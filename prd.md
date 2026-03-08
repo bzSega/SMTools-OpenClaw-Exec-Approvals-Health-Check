@@ -11,8 +11,9 @@ OpenClaw agents on headless VMs constantly trigger exec-approval prompts for rou
 Additional discovered issues:
 - Allowlists are **per-agent with no inheritance** — adding binaries to `agents["*"]` does not cover `agents["main"]`
 - `sandbox.mode: "non-main"` silently overrides `ask: off` ([Issue #31036](https://github.com/openclaw/openclaw/issues/31036))
-- Shell chaining (`&&`, `||`, `;`) and redirections (`2>/dev/null`, `2>&1`) are **rejected in allowlist mode** even when all binaries are allowlisted
-- The agent naturally generates these patterns, causing prompts regardless of allowlist completeness
+- Redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) are **rejected in allowlist mode** even when all binaries are allowlisted
+- Shell chaining (`&&`, `||`, `;`) was rejected before v2026.3.7 but is now allowed when every segment is allowlisted
+- The agent naturally generates redirections and pipes, causing prompts regardless of allowlist completeness
 
 ## Solution
 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1] - 2026-03-08
+
+### Changed
+- AGENTS.md Shell Command Rules updated for OpenClaw v2026.3.7: chaining (`&&`, `||`, `;`) is now allowed when every segment is allowlisted; only redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) remain banned
+- Known Issues updated: #20141 and #26496 marked as fixed in v2026.3.7; #31036 still open
+- Added Safe Bins section to READMEs documenting built-in auto-allowed binaries (`jq`, `cut`, `uniq`, `head`, `tail`, `tr`, `wc`)
+
 ## [2.0.0] - 2026-03-08
 
 ### Added
