@@ -14,7 +14,7 @@
 - Test 13: verifies gateway restart is called
 - Known Issues section in README with sandbox.mode workaround and links to OpenClaw issues (#31036, #20141, #26496)
 - `pip`, `pip3`, `ffmpeg`, `ffprobe`, `openclaw` added to allowlist
-- `chmod`, `touch` added to allowlist (44 entries total)
+- `chmod`, `touch`, `crontab` added to allowlist (45 entries total)
 - AGENTS.md recommendation now explains that exec tool captures stderr (no need for `2>/dev/null`)
 - AGENTS.md Shell Command Rules recommendation printed after health check (instructs agent to avoid chaining/redirections incompatible with allowlist mode)
 

@@ -136,6 +136,7 @@ BINARIES=(
   "/usr/bin/basename"
   "/usr/bin/realpath"
   "/usr/bin/readlink"
+  "/usr/bin/crontab"
   "/usr/bin/pip"
   "/usr/bin/pip3"
   "/usr/bin/ffmpeg"
