@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.0.0] - 2026-03-08
+
+### Added
+- **Interactive TUI menu**: 12 permission groups with arrow key navigation, space toggle, enter confirm, select all/none shortcuts
+- **Permission groups**: 45 binaries organized into 12 user-friendly groups with descriptions and default selections (groups 1-6 ON, groups 7-12 OFF)
+- **CLI argument parsing**: `--all`, `--no-agents-md`, `--help`, `--version` flags
+- **AGENTS.md auto-update**: creates, appends, or skips Shell Command Rules in `~/.openclaw/workspace/AGENTS.md` with backup before modification
+- **Non-terminal stdin detection**: automatically falls back to `--all` mode when not running in a terminal
+- `OPENCLAW_AGENTS_MD` env var for test isolation of AGENTS.md path
+- 8 new tests (14-21): `--help`, `--version`, `--all` binary count, AGENTS.md creation/append/skip/backup, `--no-agents-md`
+- `prd.md` product requirements document
+
+### Changed
+- Binaries reorganized from flat array into 12 permission groups with names, descriptions, and default states
+- AGENTS.md handling changed from printed recommendation to automatic file management
+- All 13 existing tests updated to use `--all --no-agents-md` flags
+- Test count: 13 → 21
+- `update.sh` now passes `--all` flag to the health check script
+- READMEs updated with usage modes, permission groups table, interactive menu preview
+- `CLAUDE.md` updated with modes, groups, and env var documentation
+
 ## [Unreleased]
 
 ### Added

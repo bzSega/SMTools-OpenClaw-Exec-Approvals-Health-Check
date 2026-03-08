@@ -11,4 +11,4 @@ chmod +x openclaw-exec-approvals-health-check.sh
 
 echo ""
 echo "Running health check..."
-./openclaw-exec-approvals-health-check.sh
+./openclaw-exec-approvals-health-check.sh --all

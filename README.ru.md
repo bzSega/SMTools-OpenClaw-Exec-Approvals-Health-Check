@@ -1,12 +1,13 @@
 # OpenClaw Exec-Approvals Health Check
 
 [![Language: Bash](https://img.shields.io/badge/language-bash-green)]()
+[![Version: 2.0](https://img.shields.io/badge/version-2.0-blue)]()
 
 > **[README in English / README на английском](README.md)**
 
-Bash-скрипт для безопасной проверки и настройки `exec-approvals.json` на вашей VM с OpenClaw.
+Интерактивный bash-скрипт для безопасной проверки и настройки `exec-approvals.json` на вашей VM с OpenClaw.
 
-Если вы только что установили OpenClaw и не знаете, как правильно настроить execution approvals — запустите этот скрипт. Он проверит текущий конфиг, выставит безопасные defaults и добавит стандартные системные утилиты в allowlist.
+Если вы только что установили OpenClaw и не знаете, как правильно настроить execution approvals — запустите этот скрипт. Он проверит текущий конфиг, выставит безопасные defaults и позволит выбрать, какие группы разрешений включить.
 
 ## Зачем это нужно?
 
@@ -15,8 +16,22 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 - Агент может быть заблокирован на безобидных командах (`cat`, `ls`, `grep`)
 - Или наоборот — иметь слишком широкие права (`security: "full"`)
 - Per-agent переопределения (например `ask: "always"`) могут конфликтовать с defaults
+- Чейнинг команд (`&&`, `||`, `;`) и редиректы (`2>/dev/null`) блокируются в режиме allowlist
 
-Этот скрипт выставляет **рекомендованный baseline**: режим `allowlist` + набор стандартных утилит Linux + чистое наследование настроек агентов.
+Этот скрипт выставляет **рекомендованный baseline**: режим `allowlist` + выбранные группы разрешений + правила AGENTS.md + чистое наследование настроек агентов.
+
+## Режимы запуска
+
+| Режим | Команда | Описание |
+|-------|---------|----------|
+| Интерактивный | `./openclaw-exec-approvals-health-check.sh` | TUI-меню для выбора групп разрешений |
+| Все группы | `./openclaw-exec-approvals-health-check.sh --all` | Добавить все 45 бинарников без меню |
+| Без AGENTS.md | `./openclaw-exec-approvals-health-check.sh --no-agents-md` | Пропустить модификацию AGENTS.md |
+| Комбинированный | `./openclaw-exec-approvals-health-check.sh --all --no-agents-md` | Без интерактива, без AGENTS.md |
+| Справка | `./openclaw-exec-approvals-health-check.sh --help` | Показать использование |
+| Версия | `./openclaw-exec-approvals-health-check.sh --version` | Показать версию |
+
+При не-терминальном stdin (например, pipe) автоматически включается режим `--all`.
 
 ## Что делает скрипт
 
@@ -26,9 +41,11 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 | 2 | Проверяет что конфиг существует и валидный JSON | Не трогает битые файлы |
 | 3 | Нормализует `defaults` (security, ask, askFallback, autoAllowSkills) | Выставляет безопасные значения |
 | 4 | Удаляет per-agent переопределения (security, ask, askFallback) | Агенты наследуют от defaults |
-| 5 | Добавляет отсутствующие системные утилиты в allowlist **каждого агента** | Не дублирует, не удаляет существующие |
-| 6 | Перезапускает gateway | Применяет изменения |
-| 7 | При ошибке предлагает восстановить бэкап | Интерактивный откат |
+| 5 | Показывает интерактивное меню выбора групп разрешений | Пользователь контролирует что разрешить |
+| 6 | Добавляет выбранные бинарники в allowlist **каждого агента** | Не дублирует, не удаляет существующие |
+| 7 | Обновляет AGENTS.md с правилами Shell Command Rules | Предотвращает проблемы с чейнингом/редиректами |
+| 8 | Перезапускает gateway | Применяет изменения |
+| 9 | При ошибке предлагает восстановить бэкап | Интерактивный откат |
 
 ### Защитные механизмы
 
@@ -58,52 +75,67 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 Скрипт удаляет `security`, `ask` и `askFallback` у отдельных агентов, чтобы они наследовали от `defaults`. По [документации OpenClaw](https://docs.openclaw.ai/tools/exec-approvals) это рекомендованный подход — переопределять только когда агенту нужна более строгая или более свободная политика. Allowlist'ы сохраняются.
 
-### Какие утилиты добавляются в allowlist
+## Группы разрешений
 
-Скрипт проверяет наличие 45 записей в allowlist каждого агента:
+Скрипт организует 45 бинарников в 12 групп разрешений. В интерактивном режиме вы выбираете, какие группы включить:
 
-**Shell и интерпретаторы:**
-`/usr/bin/env`, `/bin/sh`, `/usr/bin/bash`, `/usr/bin/python3`, `/usr/bin/node`
+| # | Группа | Описание | Бинарники | По умолчанию |
+|---|--------|----------|-----------|--------------|
+| 1 | Shell interpreters | Запуск shell-скриптов и команд | env, sh, bash | ВКЛ |
+| 2 | Script interpreters | Запуск Python и Node.js | python3, node | ВКЛ |
+| 3 | Text processing | Поиск и обработка текста | grep, cat, sed, awk, sort, uniq, head, tail, cut, tr, wc, printf | ВКЛ |
+| 4 | File management | Управление файлами и директориями | ls, pwd, mkdir, rm, cp, mv, chmod, touch | ВКЛ |
+| 5 | File discovery | Поиск файлов и путей | find, xargs, which, dirname, basename, realpath, readlink | ВКЛ |
+| 6 | File inspection | Инспекция типов файлов и метаданных | stat, file, test | ВКЛ |
+| 7 | System & time | Дата/время и задачи по расписанию | date, crontab | ВЫКЛ |
+| 8 | Network | HTTP/HTTPS запросы | curl | ВЫКЛ |
+| 9 | Package managers | Установка Python-пакетов | pip, pip3 | ВЫКЛ |
+| 10 | Multimedia | Обработка аудио и видео | ffmpeg, ffprobe | ВЫКЛ |
+| 11 | OpenClaw CLI | Операции OpenClaw и запуск скиллов | openclaw | ВЫКЛ |
+| 12 | Custom skills | Бинарники скиллов и виртуальные окружения | tg-reader\*, venv python3 | ВЫКЛ |
 
-**Сеть:** `/usr/bin/curl`
-
-**Текст и данные:**
-`grep`, `cat`, `sed`, `awk`, `sort`, `uniq`, `head`, `tail`, `cut`, `tr`, `wc`, `printf`
-
-**Файлы и директории:**
-`find`, `xargs`, `ls`, `pwd`, `chmod`, `touch`, `mkdir`, `rm`, `cp`, `mv`
-
-**Инспекция:**
-`test`, `which`, `stat`, `file`, `date`
-
-**Пути:**
-`dirname`, `basename`, `realpath`, `readlink`
-
-**Система:**
-`crontab`
-
-**Пакетные менеджеры и инструменты:**
-`pip`, `pip3`, `ffmpeg`, `ffprobe`, `openclaw`
-
-**Скиллы:**
-`~/.local/bin/tg-reader*` (чтение Telegram-каналов)
-
-**Виртуальные окружения:**
-`~/.venv/*/bin/python3` (python3 из любого venv)
+Группы 1-6 (35 бинарников) выбраны по умолчанию как необходимые. Группы 7-12 — по желанию.
 
 > Allowlist'ы в OpenClaw — per-agent (без наследования). Скрипт добавляет недостающие записи в allowlist **каждого** агента. Существующие записи с `id`, `lastUsedAt` и другими метаданными сохраняются.
+
+### Интерактивное меню
+
+```
+  OpenClaw Exec-Approvals Health Check v2.0.0
+
+  Select permission groups to enable:
+  (arrow keys = navigate, space = toggle, enter = confirm, a = all, n = none)
+
+> [x] Shell interpreters     — Run shell scripts and commands
+  [x] Script interpreters    — Run Python and Node.js scripts
+  [x] Text processing        — Search and process text data
+  [x] File management        — Manage files and directories
+  [x] File discovery         — Find files and resolve paths
+  [x] File inspection        — Inspect file types and metadata
+  [ ] System & time          — Date/time and scheduled tasks
+  [ ] Network                — Make HTTP/HTTPS requests
+  [ ] Package managers       — Install Python packages
+  [ ] Multimedia             — Process audio and video
+  [ ] OpenClaw CLI           — OpenClaw operations and skill execution
+  [ ] Custom skills          — Skill binaries and virtual environments
+```
 
 ### AGENTS.md — правила для shell-команд
 
 Даже при полном allowlist агент может вызывать промпты, потому что генерирует команды с чейнингом (`cd dir && command`, `cmd1 || cmd2`) и редиректами (`2>/dev/null`, `2>&1`). В режиме allowlist они **блокируются** ([документация](https://docs.openclaw.ai/tools/exec)).
 
-Скрипт выводит готовый блок для `~/.openclaw/workspace/AGENTS.md`, который инструктирует агента избегать этих паттернов:
+Скрипт автоматически управляет файлом `~/.openclaw/workspace/AGENTS.md`:
+
+- **Создает** файл если он не существует (с Shell Command Rules)
+- **Дополняет** правилами если файл существует, но не содержит их
+- **Пропускает** если правила уже есть
+- **Создает бэкап** перед любой модификацией
+
+Shell Command Rules инструктируют агента:
 
 - Использовать абсолютные пути вместо `cd dir && command`
-- Не использовать редиректы (`2>/dev/null`, `2>&1`)
+- Не использовать редиректы (`2>/dev/null`, `2>&1`) — exec tool уже захватывает и stdout и stderr
 - Не использовать чейнинг (`&&`, `||`, `;`) — выполнять команды по отдельности
-
-После запуска скрипта скопируйте выведенный блок в ваш `AGENTS.md`. Агент будет генерировать команды, совместимые с allowlist.
 
 ## Требования
 
@@ -121,26 +153,36 @@ cd SMTools-OpenClaw-Exec-Approvals-Health-Check
 # Сделать исполняемым
 chmod +x openclaw-exec-approvals-health-check.sh
 
-# Запустить
+# Запустить (интерактивный режим)
 ./openclaw-exec-approvals-health-check.sh
+
+# Или добавить все группы сразу
+./openclaw-exec-approvals-health-check.sh --all
 ```
 
-### Пример вывода
+### Пример вывода (режим --all)
 
 ```
 Found config: /home/user/.openclaw/exec-approvals.json
-Backup created: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
+Backup created: /home/user/.openclaw/exec-approvals.backup.20260308_153042.json
 Defaults normalized
   Agent "main": removed security=full (inherits from defaults)
-  Agent "main": removed ask=always (inherits from defaults)
-  Agent "main": removed askFallback=full (inherits from defaults)
 Agent overrides cleaned
-  + /usr/bin/curl
-  + /usr/bin/tr
-Allowlist: added 2, already present 34
+Mode: --all (all permission groups enabled)
+Selected groups: Shell interpreters Script interpreters Text processing ...
+Binaries to ensure: 45
+  [main] + /usr/bin/curl
+  [main] + /usr/bin/tr
+  Agent "main": added 2, already present 43
+Allowlist populated
 Restarting gateway...
-Done. Backup: /home/user/.openclaw/exec-approvals.backup.20260307_153042.json
-To rollback: cp '...' '~/.openclaw/exec-approvals.json' && openclaw gateway restart
+
+--- AGENTS.md Shell Command Rules ---
+  AGENTS.md created: /home/user/.openclaw/workspace/AGENTS.md
+
+============================================================
+  Done!
+============================================================
 ```
 
 ### Проверка после запуска
@@ -162,7 +204,7 @@ openclaw gateway restart
 
 ## Тесты
 
-В проекте есть 13 автоматических тестов, которые проверяют все сценарии работы скрипта:
+В проекте есть 21 автоматический тест, которые проверяют все сценарии работы скрипта:
 
 ```bash
 bash tests/run-tests.sh
@@ -179,10 +221,13 @@ bash tests/run-tests.sh
 - Дубликаты не добавляются
 - Ошибки при отсутствии конфига или битом JSON
 - Version и socket поля сохраняются
-- Allowlist агента `main` не затрагивается
-- Новые записи идут в `agents["*"]`, а не в `agents["main"]`
 - Per-agent переопределения security/ask/askFallback удаляются
 - Gateway restart вызывается
+- Флаги `--help` и `--version` работают корректно
+- `--all` добавляет все 45 бинарников
+- AGENTS.md: создание, дополнение, пропуск если уже есть
+- `--no-agents-md` пропускает обновление AGENTS.md
+- Бэкап AGENTS.md создается перед модификацией
 
 ### Pre-push hook
 

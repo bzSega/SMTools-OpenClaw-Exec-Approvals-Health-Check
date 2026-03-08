@@ -15,10 +15,12 @@ setup_tmpdir() {
   export OPENCLAW_CONFIG="$TEST_DIR/exec-approvals.json"
   export OPENCLAW_BACKUP_DIR="$TEST_DIR"
   export OPENCLAW_GATEWAY_CMD="echo gateway-restart-stub"
+  export OPENCLAW_AGENTS_MD="$TEST_DIR/AGENTS.md"
 }
 
 teardown_tmpdir() {
   rm -rf "$TEST_DIR"
+  unset OPENCLAW_AGENTS_MD 2>/dev/null || true
 }
 
 run_test() {
@@ -215,7 +217,7 @@ run_test "Backup is created before changes"
 setup_tmpdir
 create_fixture_realistic
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 BACKUP_COUNT=$(ls "$TEST_DIR"/exec-approvals.backup.*.json 2>/dev/null | wc -l)
 if [ "$BACKUP_COUNT" -ge 1 ]; then
@@ -249,7 +251,7 @@ cat > "$OPENCLAW_CONFIG" << 'EOF'
 }
 EOF
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 SEC=$(jq -r '.defaults.security' "$OPENCLAW_CONFIG")
 ASK=$(jq -r '.defaults.ask' "$OPENCLAW_CONFIG")
@@ -282,14 +284,14 @@ cat > "$OPENCLAW_CONFIG" << 'EOF'
 }
 EOF
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 COUNT=$(jq '.agents["*"].allowlist | length' "$OPENCLAW_CONFIG")
-# Script has 45 entries in the list (43 system + tg-reader + venv python3)
+# Script has 45 entries across all 12 groups
 if [ "$COUNT" -ge 45 ]; then
   pass
 else
-  fail "Expected >= 35 entries, got $COUNT"
+  fail "Expected >= 45 entries, got $COUNT"
 fi
 teardown_tmpdir
 
@@ -300,7 +302,7 @@ run_test "Existing entries preserve id/lastUsedAt metadata"
 setup_tmpdir
 create_fixture_realistic
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 # Check that original entry with id is still there
 ORIGINAL_ID=$(jq -r '
@@ -333,7 +335,7 @@ create_fixture_realistic
 # Count /bin/sh entries before
 BEFORE=$(jq '[.agents["*"].allowlist[] | select(.pattern == "/bin/sh")] | length' "$OPENCLAW_CONFIG")
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 AFTER=$(jq '[.agents["*"].allowlist[] | select(.pattern == "/bin/sh")] | length' "$OPENCLAW_CONFIG")
 
@@ -351,7 +353,7 @@ run_test "Missing config file exits with error"
 setup_tmpdir
 rm -f "$OPENCLAW_CONFIG"
 
-OUTPUT=$(bash "$HEALTH_CHECK" 2>&1 || true)
+OUTPUT=$(bash "$HEALTH_CHECK" --all --no-agents-md 2>&1 || true)
 
 if echo "$OUTPUT" | grep -q "Config not found"; then
   pass
@@ -367,7 +369,7 @@ run_test "Invalid JSON exits with error"
 setup_tmpdir
 echo "this is not json {{{" > "$OPENCLAW_CONFIG"
 
-OUTPUT=$(bash "$HEALTH_CHECK" 2>&1 || true)
+OUTPUT=$(bash "$HEALTH_CHECK" --all --no-agents-md 2>&1 || true)
 
 if echo "$OUTPUT" | grep -q "not valid JSON"; then
   pass
@@ -385,7 +387,7 @@ create_fixture_realistic
 
 ORIGINAL_HASH=$(md5sum "$OPENCLAW_CONFIG" 2>/dev/null | cut -d' ' -f1 || md5 -q "$OPENCLAW_CONFIG")
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 BACKUP_FILE=$(ls "$TEST_DIR"/exec-approvals.backup.*.json 2>/dev/null | head -1)
 BACKUP_HASH=$(md5sum "$BACKUP_FILE" 2>/dev/null | cut -d' ' -f1 || md5 -q "$BACKUP_FILE")
@@ -404,15 +406,15 @@ run_test "Version and socket fields are preserved"
 setup_tmpdir
 create_fixture_realistic
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
-VERSION=$(jq -r '.version' "$OPENCLAW_CONFIG")
+VER=$(jq -r '.version' "$OPENCLAW_CONFIG")
 SOCKET_PATH=$(jq -r '.socket.path' "$OPENCLAW_CONFIG")
 
-if [ "$VERSION" = "1" ] && [ "$SOCKET_PATH" = "/home/testuser/.openclaw/exec-approvals.sock" ]; then
+if [ "$VER" = "1" ] && [ "$SOCKET_PATH" = "/home/testuser/.openclaw/exec-approvals.sock" ]; then
   pass
 else
-  fail "version=$VERSION socket.path=$SOCKET_PATH"
+  fail "version=$VER socket.path=$SOCKET_PATH"
 fi
 teardown_tmpdir
 
@@ -423,7 +425,7 @@ run_test "Main agent allowlist gets missing binaries added"
 setup_tmpdir
 create_fixture_realistic
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 # main should have at least 45 entries now (12 original + missing ones)
 MAIN_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
@@ -459,7 +461,7 @@ cat > "$OPENCLAW_CONFIG" << 'EOF'
 }
 EOF
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 # /usr/bin/tr should be in both agents
 TR_IN_STAR=$(jq '[.agents["*"].allowlist[] | select(.pattern == "/usr/bin/tr")] | length' "$OPENCLAW_CONFIG")
@@ -501,7 +503,7 @@ cat > "$OPENCLAW_CONFIG" << 'EOF'
 }
 EOF
 
-bash "$HEALTH_CHECK" >/dev/null 2>&1
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 STAR_SEC=$(jq 'has("agents") and (.agents["*"] | has("security"))' "$OPENCLAW_CONFIG")
 STAR_ASK=$(jq 'has("agents") and (.agents["*"] | has("ask"))' "$OPENCLAW_CONFIG")
@@ -522,12 +524,158 @@ run_test "Gateway restart command is executed"
 setup_tmpdir
 create_fixture_realistic
 
-OUTPUT=$(bash "$HEALTH_CHECK" 2>&1)
+OUTPUT=$(bash "$HEALTH_CHECK" --all --no-agents-md 2>&1)
 
 if echo "$OUTPUT" | grep -q "gateway-restart-stub"; then
   pass
 else
   fail "Gateway restart stub not found in output"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 14: --help flag shows usage and exits
+# =============================================
+run_test "--help flag shows usage and exits"
+
+OUTPUT=$(bash "$HEALTH_CHECK" --help 2>&1)
+EXIT_CODE=$?
+
+if [ "$EXIT_CODE" -eq 0 ] && echo "$OUTPUT" | grep -q "Usage"; then
+  pass
+else
+  fail "exit=$EXIT_CODE, output missing 'Usage'"
+fi
+
+# =============================================
+# TEST 15: --version flag prints version
+# =============================================
+run_test "--version flag prints version"
+
+OUTPUT=$(bash "$HEALTH_CHECK" --version 2>&1)
+
+if echo "$OUTPUT" | grep -q "2\.0"; then
+  pass
+else
+  fail "Version output: $OUTPUT"
+fi
+
+# =============================================
+# TEST 16: --all adds all 45 binaries
+# =============================================
+run_test "--all flag adds all 45 binaries"
+setup_tmpdir
+
+cat > "$OPENCLAW_CONFIG" << 'EOF'
+{
+  "version": 1,
+  "defaults": {},
+  "agents": {
+    "*": {
+      "allowlist": []
+    }
+  }
+}
+EOF
+
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
+
+COUNT=$(jq '.agents["*"].allowlist | length' "$OPENCLAW_CONFIG")
+if [ "$COUNT" -ge 45 ]; then
+  pass
+else
+  fail "Expected >= 45 entries with --all, got $COUNT"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 17: AGENTS.md created when not exists
+# =============================================
+run_test "AGENTS.md created when not exists"
+setup_tmpdir
+create_fixture_realistic
+rm -f "$OPENCLAW_AGENTS_MD"
+
+echo "Y" | bash "$HEALTH_CHECK" --all >/dev/null 2>&1
+
+if [ -f "$OPENCLAW_AGENTS_MD" ] && grep -q "Shell Command Rules" "$OPENCLAW_AGENTS_MD"; then
+  pass
+else
+  fail "AGENTS.md not created or missing Shell Command Rules"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 18: AGENTS.md appended when exists without rules
+# =============================================
+run_test "AGENTS.md appended when exists without rules"
+setup_tmpdir
+create_fixture_realistic
+echo "# Existing content" > "$OPENCLAW_AGENTS_MD"
+
+echo "Y" | bash "$HEALTH_CHECK" --all >/dev/null 2>&1
+
+if grep -q "Existing content" "$OPENCLAW_AGENTS_MD" && grep -q "Shell Command Rules" "$OPENCLAW_AGENTS_MD"; then
+  pass
+else
+  fail "Original content lost or rules not appended"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 19: AGENTS.md not modified when rules already present
+# =============================================
+run_test "AGENTS.md not modified when rules already present"
+setup_tmpdir
+create_fixture_realistic
+echo -e "# Agent Rules\n## Shell Command Rules\nExisting rules" > "$OPENCLAW_AGENTS_MD"
+
+BEFORE_HASH=$(md5sum "$OPENCLAW_AGENTS_MD" 2>/dev/null | cut -d' ' -f1 || md5 -q "$OPENCLAW_AGENTS_MD")
+
+bash "$HEALTH_CHECK" --all >/dev/null 2>&1
+
+AFTER_HASH=$(md5sum "$OPENCLAW_AGENTS_MD" 2>/dev/null | cut -d' ' -f1 || md5 -q "$OPENCLAW_AGENTS_MD")
+
+if [ "$BEFORE_HASH" = "$AFTER_HASH" ]; then
+  pass
+else
+  fail "File was modified when it should not have been"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 20: --no-agents-md skips AGENTS.md update
+# =============================================
+run_test "--no-agents-md skips AGENTS.md update"
+setup_tmpdir
+create_fixture_realistic
+rm -f "$OPENCLAW_AGENTS_MD"
+
+bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
+
+if [ ! -f "$OPENCLAW_AGENTS_MD" ]; then
+  pass
+else
+  fail "AGENTS.md was created despite --no-agents-md"
+fi
+teardown_tmpdir
+
+# =============================================
+# TEST 21: AGENTS.md backup is created before modification
+# =============================================
+run_test "AGENTS.md backup is created before modification"
+setup_tmpdir
+create_fixture_realistic
+echo "# Original content only" > "$OPENCLAW_AGENTS_MD"
+
+echo "Y" | bash "$HEALTH_CHECK" --all >/dev/null 2>&1
+
+BACKUP_COUNT=$(ls "$TEST_DIR"/AGENTS.md.backup.* 2>/dev/null | wc -l)
+
+if [ "$BACKUP_COUNT" -ge 1 ]; then
+  pass
+else
+  fail "No AGENTS.md backup found"
 fi
 teardown_tmpdir
 
