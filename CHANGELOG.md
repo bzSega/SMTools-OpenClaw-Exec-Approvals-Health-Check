@@ -1,5 +1,15 @@
 # Changelog
 
+## [2.0.2] - 2026-03-14
+
+### Added
+- `printenv` added to group 7 "System & time" (46 binaries total)
+
+### Changed
+- Gateway restart message now notes it's optional since v2026.3.11 (allowlist caching fix)
+- Added "Allowlist caching fix" (v2026.3.11) and "Improved pattern matching" (v2026.3.12) sections to READMEs
+- Updated prd.md issue table with allowlist caching fix status
+
 ## [2.0.1] - 2026-03-08
 
 ### Changed

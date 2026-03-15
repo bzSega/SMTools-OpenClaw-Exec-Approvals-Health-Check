@@ -22,6 +22,8 @@ OpenClaw agents on headless VMs constantly trigger exec-approval prompts for rou
 | [#26496](https://github.com/openclaw/openclaw/issues/26496) | **Fixed in v2026.3.7** | `exec-approvals.sock` not created on headless Linux |
 | Redirections rejected | By design | `2>/dev/null`, `2>&1`, pipes (`\|`) are rejected in allowlist mode |
 | Chaining rejected | **Fixed in v2026.3.7** | `&&`, `\|\|`, `;` now allowed when every segment is allowlisted |
+| Allowlist caching stale | **Fixed in v2026.3.11** | Allowlist changes now apply immediately without gateway restart |
+| Pattern matching imprecise | **Fixed in v2026.3.12** | Case-sensitive matching with path-segment boundaries |
 
 The agent naturally generates redirections and pipes, causing prompts regardless of allowlist completeness. This requires AGENTS.md rules to instruct the agent to avoid these patterns.
 

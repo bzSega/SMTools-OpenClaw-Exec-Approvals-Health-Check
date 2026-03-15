@@ -26,12 +26,12 @@ Dependency: `jq`
 ## CLI Modes
 
 - `./script.sh` — interactive TUI menu to select permission groups
-- `./script.sh --all` — add all 45 binaries (backward compat with v1.0)
+- `./script.sh --all` — add all 46 binaries (backward compat with v1.0)
 - `./script.sh --no-agents-md` — skip AGENTS.md modification
 - `./script.sh --help` / `--version` — help and version
 - Non-terminal stdin auto-fallback to `--all`
 
-## Permission Groups (12 groups, 45 binaries)
+## Permission Groups (12 groups, 46 binaries)
 
 Groups 1-6 are ON by default (essential), groups 7-12 are OFF (opt-in):
 
@@ -41,7 +41,7 @@ Groups 1-6 are ON by default (essential), groups 7-12 are OFF (opt-in):
 4. File management (ls, pwd, mkdir, rm, cp, mv, chmod, touch)
 5. File discovery (find, xargs, which, dirname, basename, realpath, readlink)
 6. File inspection (stat, file, test)
-7. System & time (date, crontab)
+7. System & time (date, printenv, crontab)
 8. Network (curl)
 9. Package managers (pip, pip3)
 10. Multimedia (ffmpeg, ffprobe)
@@ -50,7 +50,7 @@ Groups 1-6 are ON by default (essential), groups 7-12 are OFF (opt-in):
 
 ## AGENTS.md Auto-Update
 
-The script manages `~/.openclaw/workspace/AGENTS.md` with Shell Command Rules that prevent the agent from using chaining (`&&`, `||`, `;`) and redirections (`2>/dev/null`, `2>&1`) which are rejected in allowlist mode.
+The script manages `~/.openclaw/workspace/AGENTS.md` with Shell Command Rules that prevent the agent from using redirections (`2>/dev/null`, `2>&1`) and pipes (`|`) which are rejected in allowlist mode. Chaining (`&&`, `||`, `;`) is allowed since v2026.3.7.
 
 ## Testing
 

@@ -26,7 +26,7 @@ This script sets a **recommended baseline** in one command: `allowlist` mode + s
 | Mode | Command | Description |
 |------|---------|-------------|
 | Interactive | `./openclaw-exec-approvals-health-check.sh` | TUI menu to select permission groups |
-| All groups | `./openclaw-exec-approvals-health-check.sh --all` | Add all 45 binaries without menu |
+| All groups | `./openclaw-exec-approvals-health-check.sh --all` | Add all 46 binaries without menu |
 | No AGENTS.md | `./openclaw-exec-approvals-health-check.sh --no-agents-md` | Skip AGENTS.md modification |
 | Combined | `./openclaw-exec-approvals-health-check.sh --all --no-agents-md` | Non-interactive, skip AGENTS.md |
 | Help | `./openclaw-exec-approvals-health-check.sh --help` | Show usage |
@@ -78,7 +78,7 @@ The script removes `security`, `ask`, and `askFallback` from individual agents s
 
 ## Permission groups
 
-The script organizes 45 binaries into 12 permission groups. In interactive mode, you select which groups to enable:
+The script organizes 46 binaries into 12 permission groups. In interactive mode, you select which groups to enable:
 
 | # | Group | Description | Binaries | Default |
 |---|-------|-------------|----------|---------|
@@ -88,7 +88,7 @@ The script organizes 45 binaries into 12 permission groups. In interactive mode,
 | 4 | File management | Manage files and directories | ls, pwd, mkdir, rm, cp, mv, chmod, touch | ON |
 | 5 | File discovery | Find files and resolve paths | find, xargs, which, dirname, basename, realpath, readlink | ON |
 | 6 | File inspection | Inspect file types and metadata | stat, file, test | ON |
-| 7 | System & time | Date/time and scheduled tasks | date, crontab | OFF |
+| 7 | System & time | Date/time, environment, scheduled tasks | date, printenv, crontab | OFF |
 | 8 | Network | Make HTTP/HTTPS requests | curl | OFF |
 | 9 | Package managers | Install Python packages | pip, pip3 | OFF |
 | 10 | Multimedia | Process audio and video | ffmpeg, ffprobe | OFF |
@@ -173,7 +173,7 @@ Defaults normalized
 Agent overrides cleaned
 Mode: --all (all permission groups enabled)
 Selected groups: Shell interpreters Script interpreters Text processing ...
-Binaries to ensure: 45
+Binaries to ensure: 46
   [main] + /usr/bin/curl
   [main] + /usr/bin/tr
   Agent "main": added 2, already present 43
@@ -227,7 +227,7 @@ Tests run in isolated temp directories and never touch your real config.
 - Per-agent security/ask/askFallback overrides are removed
 - Gateway restart command is executed
 - `--help` and `--version` flags work correctly
-- `--all` adds all 45 binaries
+- `--all` adds all 46 binaries
 - AGENTS.md creation, appending, and skip-if-present
 - `--no-agents-md` skips AGENTS.md update
 - AGENTS.md backup is created before modification
@@ -260,6 +260,14 @@ Even with correct exec-approvals config (`ask: off`, `security: allowlist`), app
 openclaw config set agents.defaults.sandbox.mode off
 systemctl --user restart openclaw-gateway.service
 ```
+
+### Allowlist caching fix (v2026.3.11+)
+
+Since v2026.3.11, allowlist changes apply immediately — gateway restart is no longer required after editing `exec-approvals.json`. Our script still restarts the gateway for safety (other config changes may need it), but you can skip it manually if you only changed the allowlist.
+
+### Improved pattern matching (v2026.3.12+)
+
+Allowlist glob patterns now use case-sensitive matching with path-segment boundaries. Patterns like `tg-reader*` work more reliably.
 
 ### Safe bins (v2026.3.7+)
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-VERSION="2.0.1"
+VERSION="2.0.2"
 CONFIG="${OPENCLAW_CONFIG:-$HOME/.openclaw/exec-approvals.json}"
 BACKUP=""
 GATEWAY_CMD="${OPENCLAW_GATEWAY_CMD:-openclaw gateway restart}"
@@ -167,7 +167,7 @@ GROUP_DESCS=(
   "Manage files and directories (ls, cp, mv, rm...)"
   "Find files and resolve paths (find, which...)"
   "Inspect file types and metadata (stat, file, test)"
-  "Date/time and scheduled tasks (date, crontab)"
+  "Date/time, environment, scheduled tasks (date, printenv, crontab)"
   "Make HTTP/HTTPS requests (curl)"
   "Install Python packages (pip, pip3)"
   "Process audio and video (ffmpeg, ffprobe)"
@@ -185,7 +185,7 @@ GROUP_BINS=(
   "/usr/bin/ls /usr/bin/pwd /usr/bin/mkdir /usr/bin/rm /usr/bin/cp /usr/bin/mv /usr/bin/chmod /usr/bin/touch"
   "/usr/bin/find /usr/bin/xargs /usr/bin/which /usr/bin/dirname /usr/bin/basename /usr/bin/realpath /usr/bin/readlink"
   "/usr/bin/stat /usr/bin/file /usr/bin/test"
-  "/usr/bin/date /usr/bin/crontab"
+  "/usr/bin/date /usr/bin/printenv /usr/bin/crontab"
   "/usr/bin/curl"
   "/usr/bin/pip /usr/bin/pip3"
   "/usr/bin/ffmpeg /usr/bin/ffprobe"
@@ -361,7 +361,9 @@ else
 fi
 
 # --- restart gateway ---
-echo "Restarting gateway..."
+# Note: since v2026.3.11 allowlist changes apply without restart,
+# but we restart anyway to ensure all config changes take effect.
+echo "Restarting gateway (optional since v2026.3.11, but recommended)..."
 $GATEWAY_CMD
 
 # =====================================================================

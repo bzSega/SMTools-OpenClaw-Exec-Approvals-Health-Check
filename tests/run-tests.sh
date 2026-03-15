@@ -287,11 +287,11 @@ EOF
 bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 COUNT=$(jq '.agents["*"].allowlist | length' "$OPENCLAW_CONFIG")
-# Script has 45 entries across all 12 groups
-if [ "$COUNT" -ge 45 ]; then
+# Script has 46 entries across all 12 groups
+if [ "$COUNT" -ge 46 ]; then
   pass
 else
-  fail "Expected >= 45 entries, got $COUNT"
+  fail "Expected >= 46 entries, got $COUNT"
 fi
 teardown_tmpdir
 
@@ -427,13 +427,13 @@ create_fixture_realistic
 
 bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
-# main should have at least 45 entries now (12 original + missing ones)
+# main should have at least 46 entries now (12 original + missing ones)
 MAIN_COUNT=$(jq '.agents["main"].allowlist | length' "$OPENCLAW_CONFIG")
 
-if [ "$MAIN_COUNT" -ge 45 ]; then
+if [ "$MAIN_COUNT" -ge 46 ]; then
   pass
 else
-  fail "main allowlist: expected >= 45, got $MAIN_COUNT"
+  fail "main allowlist: expected >= 46, got $MAIN_COUNT"
 fi
 teardown_tmpdir
 
@@ -561,9 +561,9 @@ else
 fi
 
 # =============================================
-# TEST 16: --all adds all 45 binaries
+# TEST 16: --all adds all 46 binaries
 # =============================================
-run_test "--all flag adds all 45 binaries"
+run_test "--all flag adds all 46 binaries"
 setup_tmpdir
 
 cat > "$OPENCLAW_CONFIG" << 'EOF'
@@ -581,10 +581,10 @@ EOF
 bash "$HEALTH_CHECK" --all --no-agents-md >/dev/null 2>&1
 
 COUNT=$(jq '.agents["*"].allowlist | length' "$OPENCLAW_CONFIG")
-if [ "$COUNT" -ge 45 ]; then
+if [ "$COUNT" -ge 46 ]; then
   pass
 else
-  fail "Expected >= 45 entries with --all, got $COUNT"
+  fail "Expected >= 46 entries with --all, got $COUNT"
 fi
 teardown_tmpdir
 

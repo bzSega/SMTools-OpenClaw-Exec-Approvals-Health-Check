@@ -26,7 +26,7 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 | Режим | Команда | Описание |
 |-------|---------|----------|
 | Интерактивный | `./openclaw-exec-approvals-health-check.sh` | TUI-меню для выбора групп разрешений |
-| Все группы | `./openclaw-exec-approvals-health-check.sh --all` | Добавить все 45 бинарников без меню |
+| Все группы | `./openclaw-exec-approvals-health-check.sh --all` | Добавить все 46 бинарников без меню |
 | Без AGENTS.md | `./openclaw-exec-approvals-health-check.sh --no-agents-md` | Пропустить модификацию AGENTS.md |
 | Комбинированный | `./openclaw-exec-approvals-health-check.sh --all --no-agents-md` | Без интерактива, без AGENTS.md |
 | Справка | `./openclaw-exec-approvals-health-check.sh --help` | Показать использование |
@@ -78,7 +78,7 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 
 ## Группы разрешений
 
-Скрипт организует 45 бинарников в 12 групп разрешений. В интерактивном режиме вы выбираете, какие группы включить:
+Скрипт организует 46 бинарников в 12 групп разрешений. В интерактивном режиме вы выбираете, какие группы включить:
 
 | # | Группа | Описание | Бинарники | По умолчанию |
 |---|--------|----------|-----------|--------------|
@@ -88,7 +88,7 @@ OpenClaw использует файл `~/.openclaw/exec-approvals.json` для 
 | 4 | File management | Управление файлами и директориями | ls, pwd, mkdir, rm, cp, mv, chmod, touch | ВКЛ |
 | 5 | File discovery | Поиск файлов и путей | find, xargs, which, dirname, basename, realpath, readlink | ВКЛ |
 | 6 | File inspection | Инспекция типов файлов и метаданных | stat, file, test | ВКЛ |
-| 7 | System & time | Дата/время и задачи по расписанию | date, crontab | ВЫКЛ |
+| 7 | System & time | Дата/время, окружение, задачи по расписанию | date, printenv, crontab | ВЫКЛ |
 | 8 | Network | HTTP/HTTPS запросы | curl | ВЫКЛ |
 | 9 | Package managers | Установка Python-пакетов | pip, pip3 | ВЫКЛ |
 | 10 | Multimedia | Обработка аудио и видео | ffmpeg, ffprobe | ВЫКЛ |
@@ -173,7 +173,7 @@ Defaults normalized
 Agent overrides cleaned
 Mode: --all (all permission groups enabled)
 Selected groups: Shell interpreters Script interpreters Text processing ...
-Binaries to ensure: 45
+Binaries to ensure: 46
   [main] + /usr/bin/curl
   [main] + /usr/bin/tr
   Agent "main": added 2, already present 43
@@ -227,7 +227,7 @@ bash tests/run-tests.sh
 - Per-agent переопределения security/ask/askFallback удаляются
 - Gateway restart вызывается
 - Флаги `--help` и `--version` работают корректно
-- `--all` добавляет все 45 бинарников
+- `--all` добавляет все 46 бинарников
 - AGENTS.md: создание, дополнение, пропуск если уже есть
 - `--no-agents-md` пропускает обновление AGENTS.md
 - Бэкап AGENTS.md создается перед модификацией
@@ -260,6 +260,14 @@ chmod +x .git/hooks/pre-push
 openclaw config set agents.defaults.sandbox.mode off
 systemctl --user restart openclaw-gateway.service
 ```
+
+### Кеширование allowlist исправлено (v2026.3.11+)
+
+С v2026.3.11 изменения allowlist применяются сразу — перезапуск gateway больше не требуется после редактирования `exec-approvals.json`. Наш скрипт всё равно перезапускает gateway на всякий случай (другие настройки конфига могут требовать рестарт), но при изменении только allowlist можно пропустить.
+
+### Улучшенный pattern matching (v2026.3.12+)
+
+Glob-паттерны в allowlist теперь используют регистрозависимое сопоставление с границами сегментов пути. Паттерны вроде `tg-reader*` работают надёжнее.
 
 ### Safe bins (v2026.3.7+)
 
